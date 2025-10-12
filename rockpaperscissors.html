@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eidun’s Rock Paper Scissors</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+      background: linear-gradient(135deg, #6dd5fa, #ffffff);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+    }
+    h1 {
+      font-size: 2.5rem;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .buttons button {
+      font-size: 1.2rem;
+      padding: 12px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .buttons button:hover {
+      transform: scale(1.1);
+    }
+    .rock { background-color: #ff7675; color: white; }
+    .paper { background-color: #74b9ff; color: white; }
+    .scissors { background-color: #55efc4; color: white; }
+    #result {
+      margin-top: 30px;
+      font-size: 1.3rem;
+      color: #2d3436;
+      background-color: rgba(255,255,255,0.7);
+      padding: 15px 25px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    a.back {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background-color: #636e72;
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: 0.3s;
+    }
+    a.back:hover {
+      background-color: #2d3436;
+    }
+  </style>
+</head>
+<body>
+
+  <a href="index.html" class="back">← Back</a>
+
+  <h1>Rock Paper Scissors</h1>
+
+  <div class="buttons">
+    <button class="rock" onclick="play('Rock')">Rock</button>
+    <button class="paper" onclick="play('Paper')">Paper</button>
+    <button class="scissors" onclick="play('Scissors')">Scissors</button>
+  </div>
+
+  <div id="result">Make your move!</div>
+
+  <script>
+    function play(playerChoice) {
+      const choices = ["Rock", "Paper", "Scissors"];
+      const computerChoice = choices[Math.floor(Math.random() * 3)];
+      let result = "";
+
+      if (playerChoice === computerChoice) {
+        result = "It's a draw!";
+      } else if (
+        (playerChoice === "Rock" && computerChoice === "Scissors") ||
+        (playerChoice === "Paper" && computerChoice === "Rock") ||
+        (playerChoice === "Scissors" && computerChoice === "Paper")
+      ) {
+        result = "You win!";
+      } else {
+        result = "You lose!";
+      }
+
+      document.getElementById("result").innerHTML =
+        `<strong>You:</strong> ${playerChoice}<br>
+         <strong>Computer:</strong> ${computerChoice}<br>
+         <strong>Result:</strong> ${result}`;
+    }
+  </script>
+
+</body>
+</html>

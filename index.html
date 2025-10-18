@@ -3,47 +3,65 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Eidun's Games</title>
+  <title>Eidun's Game Zone 🎮</title>
   <style>
     body {
-      margin: 0;
-      height: 100vh;
       font-family: 'Poppins', sans-serif;
+      text-align: center;
+      background: linear-gradient(135deg, #74b9ff, #a29bfe);
+      color: #2d3436;
+      height: 100vh;
+      margin: 0;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      flex-direction: column;
-      background: linear-gradient(135deg, #74b9ff, #a29bfe);
-      color: white;
-      text-align: center;
     }
     h1 {
       font-size: 2.5rem;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
     p {
       font-size: 1.2rem;
       margin-bottom: 30px;
-      max-width: 500px;
+    }
+    .game-links {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
     }
     a {
       text-decoration: none;
-      color: white;
       background-color: #0984e3;
-      padding: 14px 30px;
-      border-radius: 10px;
-      font-size: 1.2rem;
+      color: white;
+      padding: 12px 25px;
+      border-radius: 12px;
+      font-size: 1.1rem;
       transition: 0.3s;
+      width: 220px;
     }
     a:hover {
       background-color: #74b9ff;
       transform: scale(1.05);
     }
+    footer {
+      position: absolute;
+      bottom: 10px;
+      font-size: 0.9rem;
+      color: #636e72;
+    }
   </style>
 </head>
 <body>
-  <h1>Hey! Welcome to Eidun’s Game Zone 🎮</h1>
-  <p>Ready to challenge the computer in a classic Rock, Paper, Scissors battle? Click below to begin!</p>
-  <a href="rockpaperscissors.html">Play Rock Paper Scissors</a>
+  <h1>🎮 Welcome to Eidun's Game Zone 🎮</h1>
+  <p>Choose a game to play below!</p>
+
+  <div class="game-links">
+    <a href="rockpaperscissors.html">🪨 Rock Paper Scissors</a>
+    <a href="numberguess.html">🔢 Number Guessing Game</a>
+    <a href="tictactoe.html">❌⭕ Tic Tac Toe</a>
+  </div>
+
+  <footer>Created by Eidun101 ✨</footer>
 </body>
 </html>

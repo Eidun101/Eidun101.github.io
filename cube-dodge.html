@@ -18,11 +18,41 @@
       border-radius: 6px;
       font-size: 1rem;
     }
+    #gameover {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #ff4757;
+      color: white;
+      padding: 30px;
+      font-size: 2rem;
+      border-radius: 12px;
+      text-align: center;
+    }
+    #gameover button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #0984e3;
+      color: white;
+      transition: 0.3s;
+    }
+    #gameover button:hover { background-color: #74b9ff; transform: scale(1.05); }
   </style>
 </head>
 <body>
   <div id="score">Score: 0</div>
   <a href="index.html" class="back">← Home</a>
+
+  <div id="gameover">
+    Game Over! <br> Score: <span id="finalScore"></span><br>
+    <button onclick="restartGame()">Restart</button>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script>
@@ -30,9 +60,11 @@
     let player, obstacles = [];
     let score = 0;
     let gameSpeed = 0.05;
+    let obstacleInterval, animationId;
+    let isGameOver = false;
 
     init();
-    animate();
+    startGame();
 
     function init() {
       // Scene
@@ -49,7 +81,7 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
 
-      // Player
+      // Player cube
       const geometry = new THREE.BoxGeometry(1, 1, 1);
       const material = new THREE.MeshBasicMaterial({color: 0x00ff00});
       player = new THREE.Mesh(geometry, material);
@@ -63,11 +95,20 @@
       // Controls
       window.addEventListener('keydown', movePlayer);
 
-      // Obstacles
-      setInterval(createObstacle, 1000);
-
       // Resize
       window.addEventListener('resize', onWindowResize);
+    }
+
+    function startGame() {
+      score = 0;
+      obstacles = [];
+      isGameOver = false;
+      gameSpeed = 0.05;
+      document.getElementById('score').textContent = `Score: ${score}`;
+      document.getElementById('gameover').style.display = 'none';
+
+      obstacleInterval = setInterval(createObstacle, 1000);
+      animate();
     }
 
     function createObstacle() {
@@ -88,24 +129,23 @@
     }
 
     function movePlayer(event) {
+      if(isGameOver) return;
       if(event.key === 'ArrowLeft') player.position.x -= 0.5;
       if(event.key === 'ArrowRight') player.position.x += 0.5;
-      // keep player within bounds
       player.position.x = Math.max(-2, Math.min(2, player.position.x));
     }
 
     function animate() {
-      requestAnimationFrame(animate);
+      if(isGameOver) return;
+      animationId = requestAnimationFrame(animate);
 
-      // Move obstacles and check collisions
       const playerBox = new THREE.Box3().setFromObject(player);
       obstacles.forEach((ob, i) => {
         ob.position.z += gameSpeed;
 
         const obBox = new THREE.Box3().setFromObject(ob);
         if (playerBox.intersectsBox(obBox)) {
-          alert(`Game Over! Score: ${score}`);
-          location.reload();
+          endGame();
         }
 
         if (ob.position.z > 10) {
@@ -113,11 +153,25 @@
           obstacles.splice(i, 1);
           score++;
           document.getElementById('score').textContent = `Score: ${score}`;
-          gameSpeed += 0.002; // gradually increase speed
+          gameSpeed += 0.002;
         }
       });
 
       renderer.render(scene, camera);
+    }
+
+    function endGame() {
+      isGameOver = true;
+      clearInterval(obstacleInterval);
+      cancelAnimationFrame(animationId);
+      document.getElementById('finalScore').textContent = score;
+      document.getElementById('gameover').style.display = 'block';
+    }
+
+    function restartGame() {
+      // Remove all obstacles
+      obstacles.forEach(ob => scene.remove(ob));
+      startGame();
     }
 
     function onWindowResize() {

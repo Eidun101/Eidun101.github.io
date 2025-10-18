@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Cube Dodge - Stable</title>
+  <title>3D Cube Dodge - Optimized</title>
   <style>
     body { margin: 0; overflow: hidden; font-family: sans-serif; background: #222; }
     #score { position: absolute; top: 20px; left: 20px; color: white; font-size: 1.5rem; }
@@ -63,6 +63,7 @@
     let obstacleInterval = null;
     let animationId = null;
     let isGameOver = false;
+    const MAX_OBSTACLES = 12;
 
     init();
     startGame();
@@ -79,6 +80,7 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
 
+      // Player cube
       const geometry = new THREE.BoxGeometry(1, 1, 1);
       const material = new THREE.MeshBasicMaterial({color: 0x00ff00});
       player = new THREE.Mesh(geometry, material);
@@ -94,33 +96,37 @@
 
     function startGame() {
       // Reset variables
-      score = 0;
       obstacles.forEach(ob => scene.remove(ob));
       obstacles = [];
       isGameOver = false;
+      score = 0;
       gameSpeed = 0.05;
       document.getElementById('score').textContent = `Score: ${score}`;
       document.getElementById('gameover').style.display = 'none';
 
-      // Only one interval
+      // Single interval for obstacles
       if(obstacleInterval) clearInterval(obstacleInterval);
-      obstacleInterval = setInterval(createObstacle, 1000);
+      obstacleInterval = setInterval(() => {
+        if(obstacles.length < MAX_OBSTACLES) createObstacle();
+      }, 1000);
 
+      // Start animation
+      if(animationId) cancelAnimationFrame(animationId);
       animate();
     }
 
     function createObstacle() {
-      if(obstacles.length >= 20) return; // limit max obstacles
-
       const size = Math.random() * 0.5 + 0.5;
       const geometry = new THREE.BoxGeometry(size, size, size);
       const material = new THREE.MeshBasicMaterial({color: 0xff0000});
       const cube = new THREE.Mesh(geometry, material);
 
       let posX;
+      let tries = 0;
       do {
         posX = (Math.random() - 0.5) * 4;
-      } while (obstacles.some(ob => Math.abs(ob.position.x - posX) < 1));
+        tries++;
+      } while (obstacles.some(ob => Math.abs(ob.position.x - posX) < 1) && tries < 10);
 
       cube.position.set(posX, 0.5, -20);
       obstacles.push(cube);
@@ -139,11 +145,12 @@
       animationId = requestAnimationFrame(animate);
 
       const playerBox = new THREE.Box3().setFromObject(player);
-      obstacles.forEach((ob, i) => {
+      for(let i = obstacles.length-1; i >=0; i--) {
+        let ob = obstacles[i];
         ob.position.z += gameSpeed;
 
         const obBox = new THREE.Box3().setFromObject(ob);
-        if(playerBox.intersectsBox(obBox)) endGame();
+        if(playerBox.intersectsBox(obBox)) return endGame();
 
         if(ob.position.z > 10) {
           scene.remove(ob);
@@ -152,7 +159,7 @@
           document.getElementById('score').textContent = `Score: ${score}`;
           gameSpeed += 0.002;
         }
-      });
+      }
 
       renderer.render(scene, camera);
     }

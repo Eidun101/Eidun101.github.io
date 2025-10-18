@@ -1,69 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Eidun's Game Zone 🎮</title>
-  <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      text-align: center;
-      background: linear-gradient(135deg, #74b9ff, #a29bfe);
-      color: #2d3436;
-      height: 100vh;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 10px;
-    }
-    p {
-      font-size: 1.2rem;
-      margin-bottom: 30px;
-    }
-    .game-links {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-    a {
-      text-decoration: none;
-      background-color: #0984e3;
-      color: white;
-      padding: 12px 25px;
-      border-radius: 12px;
-      font-size: 1.1rem;
-      transition: 0.3s;
-      width: 260px;
-    }
-    a:hover {
-      background-color: #74b9ff;
-      transform: scale(1.05);
-    }
-    footer {
-      position: absolute;
-      bottom: 10px;
-      font-size: 0.9rem;
-      color: #636e72;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eidun's Game Hub</title>
+<style>
+  body {
+    margin:0;
+    font-family:sans-serif;
+    background:#1e1e2f;
+    color:white;
+  }
+  header {
+    text-align:center;
+    padding:40px 20px 20px;
+  }
+  header h1 {
+    font-size:2.5rem;
+    margin-bottom:10px;
+    color:#00ffd1;
+  }
+  header p {
+    font-size:1.1rem;
+    color:#aaa;
+  }
+  .game-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:20px;
+    padding:40px 20px;
+    max-width:1000px;
+    margin:0 auto;
+  }
+  .game-card {
+    background:#2e2e44;
+    border-radius:12px;
+    overflow:hidden;
+    text-align:center;
+    transition:0.3s;
+    box-shadow:0 4px 10px rgba(0,0,0,0.3);
+  }
+  .game-card:hover {
+    transform:translateY(-5px);
+    box-shadow:0 8px 20px rgba(0,0,0,0.5);
+  }
+  .game-card img {
+    width:100%;
+    height:150px;
+    object-fit:cover;
+  }
+  .game-card a {
+    display:block;
+    padding:15px 0;
+    font-size:1.1rem;
+    color:white;
+    text-decoration:none;
+    background:#0984e3;
+    transition:0.3s;
+  }
+  .game-card a:hover {
+    background:#00c8ff;
+  }
+  @media(max-width:500px){
+    header h1 { font-size:2rem; }
+  }
+</style>
 </head>
 <body>
-  <h1>🎮 Welcome to Eidun's Game Zone 🎮</h1>
-  <p>Choose a game to play below!</p>
+<header>
+  <h1>Eidun's Game Hub</h1>
+  <p>Click a game to start playing!</p>
+</header>
 
-  <div class="game-links">
-    <a href="rockpaperscissors.html">🪨 Rock Paper Scissors</a>
-    <a href="numberguess.html">🔢 Number Guessing Game</a>
-    <a href="tictactoe.html">❌⭕ Tic Tac Toe</a>
-    <a href="whackamole.html">🐹 Whack-a-Mole</a>
-    <a href="cube-dodge.html">🟩 3D Cube Dodge</a>
+<div class="game-grid">
+  <div class="game-card">
+    <img src="cube-dodge.png" alt="Cube Dodge">
+    <a href="cube-dodge.html">Cube Dodge 2D</a>
   </div>
-
-  <footer>Created by Eidun101 ✨</footer>
+  <div class="game-card">
+    <img src="rock-paper-scissors.png" alt="Rock Paper Scissors">
+    <a href="rock-paper-scissors.html">Rock Paper Scissors</a>
+  </div>
+  <div class="game-card">
+    <img src="tic-tac-toe.png" alt="Tic Tac Toe">
+    <a href="tic-tac-toe.html">Tic Tac Toe</a>
+  </div>
+  <div class="game-card">
+    <img src="whack-a-mole.png" alt="Whack A Mole">
+    <a href="whack-a-mole.html">Whack A Mole</a>
+  </div>
+</div>
 </body>
 </html>
+

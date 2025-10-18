@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Cube Dodge Game</title>
+  <title>3D Cube Dodge - Fixed</title>
   <style>
     body { margin: 0; overflow: hidden; font-family: sans-serif; background: #222; }
     #score { position: absolute; top: 20px; left: 20px; color: white; font-size: 1.5rem; }
@@ -29,7 +29,7 @@
     let scene, camera, renderer;
     let player, obstacles = [];
     let score = 0;
-    let gameSpeed = 0.1;
+    let gameSpeed = 0.05;
 
     init();
     animate();
@@ -41,15 +41,15 @@
 
       // Camera
       camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-      camera.position.z = 5;
-      camera.position.y = 2;
+      camera.position.set(0, 3, 10);
+      camera.lookAt(0, 0, 0);
 
       // Renderer
       renderer = new THREE.WebGLRenderer({antialias:true});
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
 
-      // Player cube
+      // Player
       const geometry = new THREE.BoxGeometry(1, 1, 1);
       const material = new THREE.MeshBasicMaterial({color: 0x00ff00});
       player = new THREE.Mesh(geometry, material);
@@ -60,11 +60,14 @@
       const light = new THREE.AmbientLight(0xffffff);
       scene.add(light);
 
-      // Event listener
+      // Controls
       window.addEventListener('keydown', movePlayer);
 
-      // Start generating obstacles
+      // Obstacles
       setInterval(createObstacle, 1000);
+
+      // Resize
+      window.addEventListener('resize', onWindowResize);
     }
 
     function createObstacle() {
@@ -72,49 +75,56 @@
       const geometry = new THREE.BoxGeometry(size, size, size);
       const material = new THREE.MeshBasicMaterial({color: 0xff0000});
       const cube = new THREE.Mesh(geometry, material);
-      cube.position.x = (Math.random() - 0.5) * 4;
-      cube.position.y = 0.5;
-      cube.position.z = -20;
+
+      // Avoid overlapping
+      let posX;
+      do {
+        posX = (Math.random() - 0.5) * 4;
+      } while (obstacles.some(ob => Math.abs(ob.position.x - posX) < 1));
+      
+      cube.position.set(posX, 0.5, -20);
       obstacles.push(cube);
       scene.add(cube);
     }
 
     function movePlayer(event) {
-      if (event.key === 'ArrowLeft') player.position.x -= 0.5;
-      if (event.key === 'ArrowRight') player.position.x += 0.5;
+      if(event.key === 'ArrowLeft') player.position.x -= 0.5;
+      if(event.key === 'ArrowRight') player.position.x += 0.5;
+      // keep player within bounds
+      player.position.x = Math.max(-2, Math.min(2, player.position.x));
     }
 
     function animate() {
       requestAnimationFrame(animate);
 
-      // Move obstacles
+      // Move obstacles and check collisions
+      const playerBox = new THREE.Box3().setFromObject(player);
       obstacles.forEach((ob, i) => {
         ob.position.z += gameSpeed;
-        if (ob.position.z > 5) {
+
+        const obBox = new THREE.Box3().setFromObject(ob);
+        if (playerBox.intersectsBox(obBox)) {
+          alert(`Game Over! Score: ${score}`);
+          location.reload();
+        }
+
+        if (ob.position.z > 10) {
           scene.remove(ob);
           obstacles.splice(i, 1);
           score++;
-          document.getElementById('score').textContent = 'Score: ' + score;
-        }
-
-        // Collision detection
-        if (
-          Math.abs(ob.position.x - player.position.x) < 0.75 &&
-          Math.abs(ob.position.z - player.position.z) < 0.75
-        ) {
-          alert('Game Over! Score: ' + score);
-          location.reload();
+          document.getElementById('score').textContent = `Score: ${score}`;
+          gameSpeed += 0.002; // gradually increase speed
         }
       });
 
       renderer.render(scene, camera);
     }
 
-    window.addEventListener('resize', () => {
+    function onWindowResize() {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+    }
   </script>
 </body>
 </html>

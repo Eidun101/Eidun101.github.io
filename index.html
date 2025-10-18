@@ -14,16 +14,17 @@
     justify-content:center;
     height:100vh;
     color:white;
-    /* Rainbow animated gradient */
-    background: linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet);
+    /* Animated rainbow background */
+    background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
     background-size: 1400% 1400%;
-    animation: rainbow 20s ease infinite;
+    animation: rainbow 20s linear infinite;
+    overflow: hidden;
   }
 
   @keyframes rainbow {
-    0% {background-position:0% 50%;}
-    50% {background-position:100% 50%;}
-    100% {background-position:0% 50%;}
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
   }
 
   h1 {
@@ -36,7 +37,7 @@
     display:block;
     margin:10px 0;
     padding:12px 24px;
-    background:rgba(0,0,0,0.5);
+    background: rgba(255,255,255,0.2); /* make buttons slightly transparent */
     color:white;
     text-decoration:none;
     border-radius:8px;
@@ -47,7 +48,7 @@
   }
 
   a:hover {
-    background:rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.5);
     color:black;
   }
 </style>

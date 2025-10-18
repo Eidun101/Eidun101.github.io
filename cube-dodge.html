@@ -1,20 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cube Dodge - Lightweight</title>
-  <style>
-    body { margin: 0; overflow: hidden; background: #222; font-family: sans-serif; }
-    #score { position: absolute; top: 20px; left: 20px; color: white; font-size: 1.5rem; }
-    #gameover { 
-      display:none; 
-      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-      background:#ff4757; color:white; padding:20px; text-align:center; border-radius:10px;
-    }
-    #gameover button { margin-top:10px; padding:8px 16px; cursor:pointer; border:none; border-radius:6px; background:#0984e3; color:white; }
-    #gameover button:hover { background:#74b9ff; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cube Dodge 2D Mobile</title>
+<style>
+  body { margin:0; background:#222; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; touch-action: none; }
+  canvas { background:#333; display:block; }
+  #score { position:absolute; top:20px; left:20px; color:white; font-size:1.5rem; }
+  #gameover { display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); 
+              background:#ff4757; color:white; padding:20px; text-align:center; border-radius:10px; }
+  #gameover button { margin-top:10px; padding:8px 16px; cursor:pointer; border:none; border-radius:6px; background:#0984e3; color:white; }
+  #gameover button:hover { background:#74b9ff; }
+</style>
 </head>
 <body>
 <div id="score">Score: 0</div>
@@ -22,115 +20,113 @@
   Game Over! <br> Score: <span id="finalScore">0</span><br>
   <button onclick="restartGame()">Restart</button>
 </div>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 <script>
-let scene, camera, renderer, player;
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let player = { x: 180, y: 550, width: 40, height: 40 };
 let obstacles = [];
 let score = 0;
-let speed = 0.03;
-let maxObstacles = 6;
+let speed = 2;
 let isGameOver = false;
-let animationId;
 
-init();
-startGame();
+// Desktop controls
+document.addEventListener('keydown', e => {
+  if(isGameOver) return;
+  if(e.key==='ArrowLeft') player.x -= 20;
+  if(e.key==='ArrowRight') player.x += 20;
+  player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+});
 
-function init() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x222222);
-
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 100);
-  camera.position.set(0, 2, 5);
-  camera.lookAt(0,0,0);
-
-  renderer = new THREE.WebGLRenderer({antialias:true});
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-
-  // Player
-  const geo = new THREE.BoxGeometry(1,1,1);
-  const mat = new THREE.MeshBasicMaterial({color:0x00ff00});
-  player = new THREE.Mesh(geo, mat);
-  player.position.y = 0.5;
-  scene.add(player);
-
-  // Light
-  scene.add(new THREE.AmbientLight(0xffffff));
-
-  window.addEventListener('keydown', movePlayer);
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-}
+// Mobile swipe controls
+let startX = null;
+canvas.addEventListener('touchstart', e => {
+  startX = e.touches[0].clientX;
+});
+canvas.addEventListener('touchmove', e => {
+  if(isGameOver) return;
+  let touchX = e.touches[0].clientX;
+  let diff = touchX - startX;
+  if(Math.abs(diff) > 20){
+    player.x += diff > 0 ? 20 : -20;
+    player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+    startX = touchX;
+  }
+});
 
 function createObstacle() {
-  if(obstacles.length >= maxObstacles) return;
-
-  const size = 0.7 + Math.random()*0.3;
-  const geo = new THREE.BoxGeometry(size,size,size);
-  const mat = new THREE.MeshBasicMaterial({color:0xff0000});
-  const ob = new THREE.Mesh(geo, mat);
-  ob.position.set((Math.random()-0.5)*4, 0.5, -10);
-  obstacles.push(ob);
-  scene.add(ob);
+  let x = Math.random() * (canvas.width - 30);
+  obstacles.push({ x: x, y: -30, width: 30, height: 30 });
 }
 
-function movePlayer(e){
+function update() {
   if(isGameOver) return;
-  if(e.key==='ArrowLeft') player.position.x -= 0.5;
-  if(e.key==='ArrowRight') player.position.x += 0.5;
-  player.position.x = Math.max(-2, Math.min(2, player.position.x));
-}
 
-function animate(){
-  if(isGameOver) return;
-  animationId = requestAnimationFrame(animate);
-
-  const playerBox = new THREE.Box3().setFromObject(player);
-
+  // Move obstacles
   for(let i=obstacles.length-1;i>=0;i--){
-    let ob = obstacles[i];
-    ob.position.z += speed;
+    obstacles[i].y += speed;
 
-    const obBox = new THREE.Box3().setFromObject(ob);
-    if(playerBox.intersectsBox(obBox)) return endGame();
+    // Collision
+    if(player.x < obstacles[i].x + obstacles[i].width &&
+       player.x + player.width > obstacles[i].x &&
+       player.y < obstacles[i].y + obstacles[i].height &&
+       player.y + player.height > obstacles[i].y) {
+         endGame();
+         return;
+    }
 
-    if(ob.position.z > 5){
-      scene.remove(ob);
+    // Remove off-screen
+    if(obstacles[i].y > canvas.height){
       obstacles.splice(i,1);
       score++;
-      document.getElementById('score').textContent = `Score: ${score}`;
+      document.getElementById('score').textContent = 'Score: '+score;
+      speed += 0.05;
     }
   }
 
-  // Occasionally add new obstacle
+  // Occasionally create new obstacle
   if(Math.random()<0.02) createObstacle();
-
-  renderer.render(scene,camera);
 }
 
-function startGame(){
-  obstacles.forEach(ob=>scene.remove(ob));
-  obstacles=[];
-  isGameOver=false;
-  score=0;
-  speed=0.03;
-  document.getElementById('score').textContent=`Score: ${score}`;
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // Player
+  ctx.fillStyle='lime';
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+  // Obstacles
+  ctx.fillStyle='red';
+  obstacles.forEach(ob => ctx.fillRect(ob.x, ob.y, ob.width, ob.height));
+}
+
+function loop() {
+  if(isGameOver) return;
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function startGame() {
+  obstacles = [];
+  player.x = 180;
+  score = 0;
+  speed = 2;
+  isGameOver = false;
+  document.getElementById('score').textContent='Score: 0';
   document.getElementById('gameover').style.display='none';
-  animate();
+  loop();
 }
 
-function endGame(){
-  isGameOver=true;
+function endGame() {
+  isGameOver = true;
   document.getElementById('finalScore').textContent=score;
   document.getElementById('gameover').style.display='block';
 }
 
 function restartGame(){ startGame(); }
 
+startGame();
 </script>
 </body>
 </html>

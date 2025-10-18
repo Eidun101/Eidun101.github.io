@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Whack-a-Mole</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+      background: linear-gradient(135deg, #ffeaa7, #fab1a0);
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 15px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-gap: 10px;
+      margin-top: 20px;
+    }
+    .cell {
+      width: 100px;
+      height: 100px;
+      background-color: #dfe6e9;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2rem;
+      cursor: pointer;
+      transition: 0.2s;
+      user-select: none;
+    }
+    .cell.active {
+      background-color: #ff7675;
+    }
+    #score {
+      margin-top: 20px;
+      font-size: 1.3rem;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background-color: #0984e3;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background-color: #74b9ff;
+      transform: scale(1.05);
+    }
+    a.back {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background-color: #636e72;
+      color: white;
+      padding: 8px 16px;
+      text-decoration: none;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <a href="index.html" class="back">← Home</a>
+
+  <h1>Whack-a-Mole!</h1>
+  <div class="grid" id="grid"></div>
+
+  <div id="score">Score: 0</div>
+  <button onclick="startGame()">Start Game</button>
+
+  <script>
+    const grid = document.getElementById("grid");
+    const scoreDisplay = document.getElementById("score");
+    let score = 0;
+    let currentMole = null;
+    let timer;
+
+    // Create 9 cells
+    for (let i = 0; i < 9; i++) {
+      const cell = document.createElement("div");
+      cell.classList.add("cell");
+      cell.dataset.index = i;
+      cell.addEventListener("click", hitMole);
+      grid.appendChild(cell);
+    }
+
+    function randomMole() {
+      const cells = document.querySelectorAll(".cell");
+      if (currentMole !== null) cells[currentMole].classList.remove("active");
+
+      const randomIndex = Math.floor(Math.random() * 9);
+      cells[randomIndex].classList.add("active");
+      currentMole = randomIndex;
+    }
+
+    function hitMole(e) {
+      const index = e.target.dataset.index;
+      if (index == currentMole) {
+        score++;
+        scoreDisplay.textContent = `Score: ${score}`;
+        currentMole = null;
+        e.target.classList.remove("active");
+      }
+    }
+
+    function startGame() {
+      score = 0;
+      scoreDisplay.textContent = `Score: ${score}`;
+      if (timer) clearInterval(timer);
+      timer = setInterval(randomMole, 800);
+      setTimeout(() => {
+        clearInterval(timer);
+        alert(`Game over! Your final score is ${score}.`);
+      }, 20000); // 20-second game
+    }
+  </script>
+</body>
+</html>

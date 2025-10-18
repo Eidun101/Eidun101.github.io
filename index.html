@@ -8,32 +8,47 @@
   body {
     margin:0;
     font-family:sans-serif;
-    background:#222;
-    color:white;
     display:flex;
     flex-direction:column;
     align-items:center;
     justify-content:center;
     height:100vh;
+    color:white;
+    /* Rainbow animated gradient */
+    background: linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet);
+    background-size: 1400% 1400%;
+    animation: rainbow 20s ease infinite;
   }
+
+  @keyframes rainbow {
+    0% {background-position:0% 50%;}
+    50% {background-position:100% 50%;}
+    100% {background-position:0% 50%;}
+  }
+
   h1 {
-    margin-bottom:30px;
+    margin-bottom:40px;
+    font-size:2.5rem;
+    text-shadow: 2px 2px 4px #000;
   }
+
   a {
     display:block;
     margin:10px 0;
     padding:12px 24px;
-    background:#0984e3;
+    background:rgba(0,0,0,0.5);
     color:white;
     text-decoration:none;
     border-radius:8px;
     font-size:1.2rem;
     text-align:center;
-    width:200px;
+    width:220px;
     transition:0.3s;
   }
+
   a:hover {
-    background:#74b9ff;
+    background:rgba(255,255,255,0.3);
+    color:black;
   }
 </style>
 </head>

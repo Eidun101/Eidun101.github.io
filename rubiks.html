@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rubik's Cube 2D</title>
+<style>
+body {
+  background: radial-gradient(circle, #111, #000);
+  color: white;
+  font-family: sans-serif;
+  text-align: center;
+  margin: 0;
+  padding: 30px;
+}
+h1 { margin-bottom: 20px; }
+#cube {
+  display: grid;
+  grid-template-columns: repeat(3, 60px);
+  grid-gap: 5px;
+  margin: 0 auto;
+}
+.cell {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  border: 2px solid #000;
+}
+.controls {
+  margin-top: 25px;
+}
+button {
+  padding: 10px 15px;
+  margin: 5px;
+  border-radius: 8px;
+  background: #333;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+button:hover {
+  background: #555;
+}
+</style>
+</head>
+<body>
+<h1>Rubik's Cube (2D)</h1>
+
+<div id="cube"></div>
+
+<div class="controls">
+  <button onclick="rotateRow(0)">Rotate Top Row</button>
+  <button onclick="rotateRow(1)">Rotate Middle Row</button>
+  <button onclick="rotateRow(2)">Rotate Bottom Row</button><br>
+  <button onclick="rotateCol(0)">Rotate Left Column</button>
+  <button onclick="rotateCol(1)">Rotate Middle Column</button>
+  <button onclick="rotateCol(2)">Rotate Right Column</button><br>
+  <button onclick="scramble()">Scramble</button>
+  <button onclick="resetCube()">Reset</button>
+</div>
+
+<script>
+const colors = ["white", "green", "red", "blue", "orange", "yellow"];
+let cube = [];
+const cubeDiv = document.getElementById("cube");
+
+function createCube() {
+  cube = Array(3).fill().map(() => Array(3).fill(null));
+  let colorIndex = 0;
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      cube[i][j] = colors[(i + j) % colors.length];
+    }
+  }
+  renderCube();
+}
+
+function renderCube() {
+  cubeDiv.innerHTML = "";
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.style.background = cube[i][j];
+      cubeDiv.appendChild(cell);
+    }
+  }
+}
+
+function rotateRow(row) {
+  const temp = cube[row][2];
+  cube[row][2] = cube[row][1];
+  cube[row][1] = cube[row][0];
+  cube[row][0] = temp;
+  renderCube();
+}
+
+function rotateCol(col) {
+  const temp = cube[2][col];
+  cube[2][col] = cube[1][col];
+  cube[1][col] = cube[0][col];
+  cube[0][col] = temp;
+  renderCube();
+}
+
+function scramble() {
+  for (let i = 0; i < 10; i++) {
+    rotateRow(Math.floor(Math.random() * 3));
+    rotateCol(Math.floor(Math.random() * 3));
+  }
+}
+
+function resetCube() {
+  createCube();
+}
+
+createCube();
+</script>
+</body>
+</html>

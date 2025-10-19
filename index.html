@@ -3,53 +3,81 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Eidun's Game Hub</title>
+<title>Eidun's Game Hub 🎮</title>
 <style>
   body {
-    margin:0;
-    font-family:sans-serif;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    height:100vh;
-    color:white;
-    background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
-    background-size: 1400% 1400%;
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    color: white;
+    text-align: center;
+    background: linear-gradient(270deg, red, orange, yellow, green, blue, indigo, violet);
+    background-size: 1200% 1200%;
     animation: rainbow 20s linear infinite;
   }
+
   @keyframes rainbow {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
   }
-  a {
-    display:block;
-    margin:10px 0;
-    padding:12px 24px;
-    background: rgba(255,255,255,0.2);
-    color:white;
-    text-decoration:none;
-    border-radius:8px;
-    font-size:1.2rem;
-    width:220px;
-    text-align:center;
-    transition:0.3s;
+
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 10px rgba(0,0,0,0.3);
   }
+
+  .game-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 15px;
+    width: 90%;
+    max-width: 700px;
+  }
+
+  a {
+    display: block;
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 15px 20px;
+    font-size: 1.2rem;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    transition: 0.3s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+
   a:hover {
     background: rgba(255,255,255,0.5);
-    color:black;
+    color: black;
+    transform: translateY(-3px);
+  }
+
+  footer {
+    margin-top: 30px;
+    font-size: 0.9rem;
+    opacity: 0.8;
   }
 </style>
 </head>
 <body>
-<h1>Eidun's Game Hub</h1>
+  <h1>🎮 Eidun's Game Hub</h1>
 
-<a href="cube-dodge.html">Cube Dodge 2D</a>
-<a href="rockpaperscissors.html">Rock Paper Scissors</a>
-<a href="tictactoe.html">Tic Tac Toe</a>
-<a href="whackamole.html">Whack A Mole</a>
-<a href="rubiks.html">Rubik's Cube</a> <!-- 🧩 Added this line -->
+  <div class="game-links">
+    <a href="rockpaperscissors.html">Rock Paper Scissors</a>
+    <a href="tictactoe.html">Tic Tac Toe</a>
+    <a href="whackamole.html">Whack A Mole</a>
+    <a href="cube-dodge.html">Cube Dodge</a>
+    <a href="rubiks.html">Rubik's Cube</a>
+    <a href="snakes-and-ladders.html">Snakes & Ladders</a> <!-- 🐍 Added new game -->
+  </div>
 
+  <footer>Made by Eidun 💫</footer>
 </body>
 </html>

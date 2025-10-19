@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess ♟️ | 2 Player Game</title>
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: radial-gradient(circle at center, #111 0%, #000 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    color: white;
+  }
+
+  h1 {
+    margin-bottom: 10px;
+    color: #0ff;
+    text-shadow: 1px 1px 5px #000;
+  }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(8, 60px);
+    grid-template-rows: repeat(8, 60px);
+    border: 4px solid #0ff;
+    border-radius: 10px;
+    box-shadow: 0 0 20px #0ff;
+    touch-action: manipulation;
+  }
+
+  .cell {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
+    cursor: pointer;
+  }
+
+  .light { background: #f0d9b5; }
+  .dark { background: #b58863; }
+  .selected { outline: 3px solid yellow; }
+
+  #turn {
+    margin-top: 10px;
+    font-weight: bold;
+    color: #0ff;
+  }
+
+  button {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background: #0ff;
+    color: #000;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+
+  @media (max-width: 600px) {
+    #board {
+      grid-template-columns: repeat(8, 40px);
+      grid-template-rows: repeat(8, 40px);
+    }
+    .cell { font-size: 24px; width: 40px; height: 40px; }
+  }
+</style>
+</head>
+<body>
+  <h1>♟️ 2 Player Chess</h1>
+  <div id="board"></div>
+  <div id="turn">White’s Turn</div>
+  <button onclick="resetBoard()">Restart Game</button>
+
+<script>
+const boardEl = document.getElementById('board');
+const turnEl = document.getElementById('turn');
+
+let board = [];
+let selected = null;
+let turn = 'white';
+
+const pieces = {
+  white: { K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙' },
+  black: { K: '♚', Q: '♛', R: '♜', B: '♝', N: '♞', P: '♟' }
+};
+
+// Setup starting board
+function createBoard() {
+  board = [
+    ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+    ['bP','bP','bP','bP','bP','bP','bP','bP'],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['wP','wP','wP','wP','wP','wP','wP','wP'],
+    ['wR','wN','wB','wQ','wK','wB','wN','wR']
+  ];
+}
+
+function renderBoard() {
+  boardEl.innerHTML = '';
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const cell = document.createElement('div');
+      cell.className = `cell ${(r+c)%2 ? 'dark':'light'}`;
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      const piece = board[r][c];
+      if (piece) {
+        const color = piece[0] === 'w' ? 'white' : 'black';
+        const type = piece[1];
+        cell.textContent = pieces[color][type];
+      }
+      cell.onclick = () => cellClick(r, c, cell);
+      boardEl.appendChild(cell);
+    }
+  }
+}
+
+function cellClick(r, c, cell) {
+  const piece = board[r][c];
+  if (selected) {
+    const [sr, sc] = selected;
+    const selectedPiece = board[sr][sc];
+    if (isValidMove(selectedPiece, sr, sc, r, c)) {
+      board[r][c] = selectedPiece;
+      board[sr][sc] = '';
+      turn = turn === 'white' ? 'black' : 'white';
+      turnEl.textContent = `${turn.charAt(0).toUpperCase() + turn.slice(1)}’s Turn`;
+    }
+    selected = null;
+    renderBoard();
+  } else if (piece && piece[0] === (turn === 'white' ? 'w' : 'b')) {
+    selected = [r, c];
+    renderBoard();
+    cell.classList.add('selected');
+  }
+}
+
+// Simplified movement logic
+function isValidMove(piece, sr, sc, tr, tc) {
+  if (!piece) return false;
+  const color = piece[0] === 'w' ? 'white' : 'black';
+  if (color !== turn) return false;
+  const type = piece[1];
+  const dr = tr - sr;
+  const dc = tc - sc;
+  const target = board[tr][tc];
+  const enemy = target && target[0] !== piece[0];
+
+  switch (type) {
+    case 'P':
+      const dir = color === 'white' ? -1 : 1;
+      if (dc === 0 && board[tr][tc] === '' && dr === dir) return true;
+      if (dc === 0 && board[tr][tc] === '' && dr === 2*dir && (sr === 1 || sr === 6)) return true;
+      if (Math.abs(dc) === 1 && dr === dir && enemy) return true;
+      break;
+    case 'R':
+      if (sr === tr || sc === tc) return pathClear(sr, sc, tr, tc);
+      break;
+    case 'B':
+      if (Math.abs(sr-tr) === Math.abs(sc-tc)) return pathClear(sr, sc, tr, tc);
+      break;
+    case 'Q':
+      if (sr === tr || sc === tc || Math.abs(sr-tr) === Math.abs(sc-tc)) return pathClear(sr, sc, tr, tc);
+      break;
+    case 'N':
+      if ((Math.abs(sr-tr)===2 && Math.abs(sc-tc)===1) || (Math.abs(sr-tr)===1 && Math.abs(sc-tc)===2)) return true;
+      break;
+    case 'K':
+      if (Math.abs(sr-tr)<=1 && Math.abs(sc-tc)<=1) return true;
+      break;
+  }
+  return false;
+}
+
+// Checks that no pieces are between source and target
+function pathClear(sr, sc, tr, tc) {
+  const stepR = Math.sign(tr - sr);
+  const stepC = Math.sign(tc - sc);
+  let r = sr + stepR;
+  let c = sc + stepC;
+  while (r !== tr || c !== tc) {
+    if (board[r][c] !== '') return false;
+    r += stepR;
+    c += stepC;
+  }
+  return true;
+}
+
+function resetBoard() {
+  createBoard();
+  selected = null;
+  turn = 'white';
+  turnEl.textContent = "White’s Turn";
+  renderBoard();
+}
+
+createBoard();
+renderBoard();
+</script>
+</body>
+</html>

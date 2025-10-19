@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flappy Bird 🐤</title>
+<title>Flappy Bird 🐦</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -13,7 +13,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(to bottom, #4ac1ff, #d0f4ff);
+    background: linear-gradient(to bottom, #87ceeb, #d0f4ff);
     font-family: 'Segoe UI', sans-serif;
     height: 100vh;
   }
@@ -41,7 +41,7 @@
 </style>
 </head>
 <body>
-  <h1>Flappy Bird 🐤</h1>
+  <h1>Flappy Bird 🐦</h1>
   <canvas id="gameCanvas" width="400" height="500"></canvas>
   <button class="btn" onclick="startGame()">Start Game</button>
 
@@ -54,11 +54,11 @@ let gameOver = false;
 let score = 0;
 let pipes = [];
 
-const gravity = 0.25;
-const jump = -5;
-const pipeGap = 100;
-const pipeWidth = 50;
-const pipeSpeed = 2;
+const gravity = 0.18;   // slower gravity
+const jump = -4;        // gentler flap
+const pipeGap = 120;    // bigger gap
+const pipeWidth = 60;
+const pipeSpeed = 1.5;  // slower pipes
 
 const bird = {
   x: 80,
@@ -95,8 +95,8 @@ function drawPipes() {
 }
 
 function updatePipes() {
-  if (frames % 100 === 0) {
-    let top = Math.floor(Math.random() * 200) + 50;
+  if (frames % 120 === 0) {
+    let top = Math.floor(Math.random() * 180) + 70;
     pipes.push({ x: canvas.width, top: top });
   }
   pipes.forEach(pipe => {
@@ -106,9 +106,7 @@ function updatePipes() {
 }
 
 function detectCollision() {
-  if (bird.y + bird.radius >= canvas.height || bird.y - bird.radius <= 0) {
-    return true;
-  }
+  if (bird.y + bird.radius >= canvas.height || bird.y - bird.radius <= 0) return true;
   for (let pipe of pipes) {
     if (
       bird.x + bird.radius > pipe.x &&
@@ -125,7 +123,6 @@ function update() {
   frames++;
   bird.velocity += gravity;
   bird.y += bird.velocity;
-
   updatePipes();
 
   if (pipes.length && pipes[0].x + pipeWidth < bird.x && !pipes[0].passed) {
@@ -133,9 +130,7 @@ function update() {
     score++;
   }
 
-  if (detectCollision()) {
-    gameOver = true;
-  }
+  if (detectCollision()) gameOver = true;
 }
 
 function drawScore() {

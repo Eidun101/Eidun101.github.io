@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flappy Bird 🐤</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(to bottom, #4ac1ff, #d0f4ff);
+    font-family: 'Segoe UI', sans-serif;
+    height: 100vh;
+  }
+  canvas {
+    background: linear-gradient(to bottom, #4ac1ff, #c2f2ff);
+    border: 4px solid #00aaff;
+    border-radius: 12px;
+  }
+  h1 {
+    color: #00354d;
+    margin-bottom: 10px;
+    font-weight: bold;
+  }
+  .btn {
+    margin-top: 10px;
+    padding: 10px 20px;
+    background: #00aaff;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .btn:hover { background: #0077aa; }
+</style>
+</head>
+<body>
+  <h1>Flappy Bird 🐤</h1>
+  <canvas id="gameCanvas" width="400" height="500"></canvas>
+  <button class="btn" onclick="startGame()">Start Game</button>
+
+<script>
+let canvas = document.getElementById("gameCanvas");
+let ctx = canvas.getContext("2d");
+let frames = 0;
+let gameStarted = false;
+let gameOver = false;
+let score = 0;
+let pipes = [];
+
+const gravity = 0.25;
+const jump = -5;
+const pipeGap = 100;
+const pipeWidth = 50;
+const pipeSpeed = 2;
+
+const bird = {
+  x: 80,
+  y: 200,
+  radius: 12,
+  velocity: 0,
+  color: "yellow"
+};
+
+function resetGame() {
+  score = 0;
+  pipes = [];
+  bird.y = 200;
+  bird.velocity = 0;
+  gameOver = false;
+  frames = 0;
+}
+
+function drawBird() {
+  ctx.beginPath();
+  ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
+  ctx.fillStyle = bird.color;
+  ctx.fill();
+  ctx.strokeStyle = "#ffb300";
+  ctx.stroke();
+}
+
+function drawPipes() {
+  ctx.fillStyle = "green";
+  pipes.forEach(pipe => {
+    ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
+    ctx.fillRect(pipe.x, pipe.top + pipeGap, pipeWidth, canvas.height - pipe.top - pipeGap);
+  });
+}
+
+function updatePipes() {
+  if (frames % 100 === 0) {
+    let top = Math.floor(Math.random() * 200) + 50;
+    pipes.push({ x: canvas.width, top: top });
+  }
+  pipes.forEach(pipe => {
+    pipe.x -= pipeSpeed;
+  });
+  pipes = pipes.filter(pipe => pipe.x + pipeWidth > 0);
+}
+
+function detectCollision() {
+  if (bird.y + bird.radius >= canvas.height || bird.y - bird.radius <= 0) {
+    return true;
+  }
+  for (let pipe of pipes) {
+    if (
+      bird.x + bird.radius > pipe.x &&
+      bird.x - bird.radius < pipe.x + pipeWidth &&
+      (bird.y - bird.radius < pipe.top || bird.y + bird.radius > pipe.top + pipeGap)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function update() {
+  frames++;
+  bird.velocity += gravity;
+  bird.y += bird.velocity;
+
+  updatePipes();
+
+  if (pipes.length && pipes[0].x + pipeWidth < bird.x && !pipes[0].passed) {
+    pipes[0].passed = true;
+    score++;
+  }
+
+  if (detectCollision()) {
+    gameOver = true;
+  }
+}
+
+function drawScore() {
+  ctx.fillStyle = "#004b5f";
+  ctx.font = "24px Segoe UI";
+  ctx.fillText("Score: " + score, 10, 30);
+}
+
+function drawGameOver() {
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "white";
+  ctx.font = "28px Segoe UI";
+  ctx.fillText("Game Over!", 120, 220);
+  ctx.fillText("Score: " + score, 150, 260);
+  ctx.font = "20px Segoe UI";
+  ctx.fillText("Press Space or Tap to Restart", 60, 310);
+}
+
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawPipes();
+  drawBird();
+  drawScore();
+
+  if (!gameOver) {
+    update();
+    requestAnimationFrame(gameLoop);
+  } else {
+    drawGameOver();
+  }
+}
+
+function flap() {
+  if (!gameStarted) return;
+  if (gameOver) {
+    resetGame();
+    startGame();
+  } else {
+    bird.velocity = jump;
+  }
+}
+
+document.addEventListener("keydown", e => {
+  if (e.code === "Space") flap();
+});
+
+canvas.addEventListener("touchstart", flap);
+
+function startGame() {
+  resetGame();
+  gameStarted = true;
+  gameLoop();
+}
+</script>
+</body>
+</html>

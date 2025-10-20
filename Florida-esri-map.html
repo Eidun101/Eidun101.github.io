@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ESRI Map — Florida Feature Points</title>
+
+<link rel="stylesheet" href="https://js.arcgis.com/4.26/esri/themes/light/main.css">
+<style>
+  html,body,#viewDiv{ height:100%; width:100%; margin:0; padding:0; }
+  #topbar { position:absolute; z-index:99; left:12px; top:12px; background:rgba(255,255,255,0.9); padding:8px 12px; border-radius:6px; font-family:Arial,Helvetica,sans-serif; }
+  .small { font-size:13px; color:#333; }
+</style>
+</head>
+<body>
+  <div id="topbar">
+    <strong>Florida — Sample Points</strong>
+    <div class="small">Tap/click points for details. Use mouse or touch to pan/zoom.</div>
+  </div>
+
+  <div id="viewDiv"></div>
+
+  <script src="https://js.arcgis.com/4.26/"></script>
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/Graphic",
+      "esri/layers/GraphicsLayer",
+      "esri/widgets/Search",
+      "esri/widgets/Locate",
+      "esri/widgets/LayerList",
+      "esri/config"
+    ], function(Map, MapView, Graphic, GraphicsLayer, Search, Locate, LayerList, esriConfig) {
+
+      // ===== OPTIONAL: if you have an ArcGIS API key, set it here (uncomment)
+      // esriConfig.apiKey = "YOUR_ARCGIS_API_KEY_HERE";
+
+      // Create map and view
+      const map = new Map({
+        basemap: "arcgis-navigation" // change to "streets" or "topo" as desired
+      });
+
+      const view = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [-82.5, 28.0], // [longitude, latitude] roughly centered in Florida
+        zoom: 6
+      });
+
+      // Create a GraphicsLayer to hold point graphics
+      const pointsLayer = new GraphicsLayer();
+      map.add(pointsLayer);
+
+      // Popup template used for all points
+      const popupTemplate = {
+        title: "{name}",
+        content: `
+          <div>
+            <p><strong>City:</strong> {name}</p>
+            <p><strong>Population (approx):</strong> {population}</p>
+            <p><strong>Notes:</strong> {notes}</p>
+            <p><a href="https://www.google.com/search?q={name}+florida" target="_blank">More on web</a></p>
+          </div>
+        `
+      };
+
+      // Define symbol for points (marker)
+      const markerSymbol = {
+        type: "simple-marker",
+        style: "circle",
+        color: [0, 122, 204, 0.9],
+        outline: { color: [255,255,255,0.9], width: 1.5 },
+        size: 12
+      };
+
+      // Sample Florida cities (longitude, latitude)
+      const floridaPoints = [
+        { name: "Miami", coords: [-80.1918, 25.7617], population: "≈ 470,000", notes: "Major metro & coastal city" },
+        { name: "Orlando", coords: [-81.3792, 28.5383], population: "≈ 309,000", notes: "Theme parks & tourism hub" },
+        { name: "Tampa", coords: [-82.4572, 27.9506], population: "≈ 410,000", notes: "Port city on Tampa Bay" },
+        { name: "Jacksonville", coords: [-81.6557, 30.3322], population: "≈ 920,000", notes: "Largest city by area in contiguous US" },
+        { name: "Tallahassee", coords: [-84.2807, 30.4383], population: "≈ 200,000", notes: "Florida State capital" }
+      ];
+
+      // Add graphics to the layer
+      floridaPoints.forEach(p => {
+        const g = new Graphic({
+          geometry: {
+            type: "point",
+            longitude: p.coords[0],
+            latitude: p.coords[1]
+          },
+          symbol: markerSymbol,
+          attributes: {
+            name: p.name,
+            population: p.population,
+            notes: p.notes
+          },
+          popupTemplate: popupTemplate
+        });
+        pointsLayer.add(g);
+      });
+
+      // Widgets: Search (to find addresses/places), Locate, and LayerList
+      const search = new Search({ view: view });
+      view.ui.add(search, { position: "top-right", index: 0 });
+
+      const locate = new Locate({ view: view, useHeadingEnabled: false });
+      view.ui.add(locate, { position: "top-right", index: 1 });
+
+      const layerList = new LayerList({ view: view });
+      view.ui.add(layerList, { position: "top-left" });
+
+      // Fit view to layer extent once layer is ready
+      view.whenLayerView(pointsLayer).then(function() {
+        // compute extent of points and go to it
+        const allPoints = floridaPoints.map(p => p.coords);
+        // build a simple extent around them
+        const lons = allPoints.map(c => c[0]), lats = allPoints.map(c => c[1]);
+        const xmin = Math.min(...lons) - 0.6, xmax = Math.max(...lons) + 0.6;
+        const ymin = Math.min(...lats) - 0.6, ymax = Math.max(...lats) + 0.6;
+        view.goTo({ xmin, ymin, xmax, ymax })
+          .catch(()=>{/* ignore navigation errors */});
+      });
+
+      // Optional: clicking the map shows coordinates in console (useful while developing)
+      view.on("click", function(evt) {
+        console.log("Map click at:", evt.mapPoint.longitude.toFixed(6), evt.mapPoint.latitude.toFixed(6));
+      });
+
+    });
+  </script>
+</body>
+</html>

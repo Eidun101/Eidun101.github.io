@@ -3,214 +3,148 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Simple Space Invaders</title>
+<title>Space Invaders (Simple)</title>
 <style>
-  body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#cfe;font-family:sans-serif}
-  canvas{background:#001;display:block;border:4px solid #022;border-radius:6px}
-  .ui{position:fixed;top:12px;left:12px;font-size:16px}
-  .center{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center}
-  button{padding:8px 12px;border-radius:6px;border:none;background:#036;color:#fff;cursor:pointer}
+  body{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#000;color:#cfe;font-family:sans-serif}
+  canvas{background:#001;display:block;border:3px solid #024;border-radius:6px;touch-action:none}
+  #ui{position:fixed;top:8px;left:8px;font-size:16px}
+  #menu{text-align:center;margin-bottom:8px}
+  #buttons{display:flex;justify-content:center;gap:10px;margin-top:10px}
+  .btn{width:70px;height:70px;background:#024;color:#fff;font-size:28px;border:none;border-radius:50%;user-select:none}
 </style>
 </head>
 <body>
-<div class="ui">
-  Score: <span id="score">0</span> &nbsp; Lives: <span id="lives">3</span>
-</div>
-
-<canvas id="c" width="600" height="420"></canvas>
-
-<div class="center" id="menu">
+<div id="menu">
   <h2>Simple Space Invaders</h2>
-  <div>Use ← → to move, Space to shoot</div>
-  <br/>
+  <p>Use arrows or touch buttons</p>
   <button id="start">Start / Restart</button>
 </div>
 
+<div id="ui">Score: <span id="score">0</span> &nbsp; Lives: <span id="lives">3</span></div>
+<canvas id="game" width="600" height="420"></canvas>
+
+<div id="buttons">
+  <button class="btn" id="left">◀</button>
+  <button class="btn" id="shoot">●</button>
+  <button class="btn" id="right">▶</button>
+</div>
+
 <script>
-const canvas = document.getElementById('c');
+const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
 const livesEl = document.getElementById('lives');
-const menu = document.getElementById('menu');
 const startBtn = document.getElementById('start');
+const leftBtn = document.getElementById('left');
+const rightBtn = document.getElementById('right');
+const shootBtn = document.getElementById('shoot');
 
-let W = canvas.width, H = canvas.height;
-let keys = {};
-let player, bullets, enemies, score, lives, running;
+let W=canvas.width,H=canvas.height;
+let keys={},touch={left:false,right:false,shoot:false};
+let player,bullets,enemies,score,lives,running;
+let enemyDir=1,enemySpeed=20;
 
-function makePlayer(){
-  return {x: W/2 - 16, y: H-34, w:32, h:12, speed:240, canShoot:true, shootDelay:0.3, shootTimer:0};
-}
+// create player
+function makePlayer(){return{x:W/2-16,y:H-30,w:32,h:12,speed:240,shootTimer:0,shootDelay:0.3};}
+
 function reset(){
-  player = makePlayer();
-  bullets = []; // {x,y,vy,owner}
-  enemies = [];
-  score = 0;
-  lives = 3;
-  // make 3 rows x 8 cols simple grid
-  const cols = 8, rows = 3;
-  const startX = 60, startY = 40;
-  const gapX = 56, gapY = 36;
-  for(let r=0;r<rows;r++){
-    for(let c=0;c<cols;c++){
-      enemies.push({x:startX + c*gapX, y:startY + r*gapY, w:30, h:18, alive:true});
-    }
-  }
-  running = true;
-  updateUI();
-  menu.style.display = 'none';
+  player=makePlayer();
+  bullets=[];
+  enemies=[];
+  score=0;
+  lives=3;
+  enemyDir=1;enemySpeed=20;
+  const cols=8,rows=3;
+  const startX=60,startY=40,gapX=56,gapY=36;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)
+    enemies.push({x:startX+c*gapX,y:startY+r*gapY,w:30,h:18,alive:true});
+  running=true;updateUI();
 }
 
-function updateUI(){ scoreEl.textContent = score; livesEl.textContent = lives; }
-
-function rectsOverlap(a,b){
-  return !(a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h);
-}
-
-let enemyDir = 1; // move right initially
-let enemySpeed = 20; // px per second
+function updateUI(){scoreEl.textContent=score;livesEl.textContent=lives;}
+function rectsOverlap(a,b){return !(a.x+a.w<b.x||a.x>b.x+b.w||a.y+a.h<b.y||a.y>b.y+b.h);}
 
 function update(dt){
-  if(!running) return;
+  if(!running)return;
   // player movement
-  if(keys.ArrowLeft) player.x -= player.speed * dt;
-  if(keys.ArrowRight) player.x += player.speed * dt;
-  player.x = Math.max(6, Math.min(W - player.w - 6, player.x));
+  if(keys.ArrowLeft||touch.left)player.x-=player.speed*dt;
+  if(keys.ArrowRight||touch.right)player.x+=player.speed*dt;
+  player.x=Math.max(6,Math.min(W-player.w-6,player.x));
 
-  // shooting cooldown
-  if(player.shootTimer > 0) player.shootTimer -= dt;
-  if((keys[' '] || keys.Space) && player.shootTimer <= 0){
-    bullets.push({x: player.x + player.w/2 - 2, y: player.y, w:4, h:8, vy:-380, owner:'player'});
-    player.shootTimer = player.shootDelay;
+  // shooting
+  if(player.shootTimer>0)player.shootTimer-=dt;
+  if((keys[' ']||touch.shoot)&&player.shootTimer<=0){
+    bullets.push({x:player.x+player.w/2-2,y:player.y,w:4,h:8,vy:-380,owner:'p'});
+    player.shootTimer=player.shootDelay;
   }
 
-  // bullets
+  // bullets move
   for(let i=bullets.length-1;i>=0;i--){
-    let b = bullets[i];
-    b.y += b.vy * dt;
-    if(b.y < -20 || b.y > H+20){ bullets.splice(i,1); continue; }
-    // player bullets hit enemies
-    if(b.owner === 'player'){
-      for(let j=0;j<enemies.length;j++){
-        let e = enemies[j];
-        if(!e.alive) continue;
-        if(rectsOverlap({x:b.x,y:b.y,w:b.w,h:b.h}, e)){
-          e.alive = false;
-          bullets.splice(i,1);
-          score += 10;
-          updateUI();
-          break;
-        }
+    let b=bullets[i];b.y+=b.vy*dt;
+    if(b.y<-20||b.y>H+20){bullets.splice(i,1);continue;}
+    // hit enemy
+    if(b.owner==='p'){
+      for(let e of enemies){
+        if(e.alive&&rectsOverlap(b,e)){e.alive=false;bullets.splice(i,1);score+=10;updateUI();break;}
       }
+    }else if(b.owner==='e'&&rectsOverlap(b,player)){
+      bullets.splice(i,1);lives--;updateUI();
+      if(lives<=0){running=false;alert('Game Over');}
     }
   }
 
-  // enemies movement: simple horizontal sweep and drop when edge hit
-  let alive = enemies.filter(e=>e.alive);
-  if(alive.length === 0){
-    // win: reset small wave
-    createNextWave();
-    return;
-  }
-  let minX = Math.min(...alive.map(e=>e.x));
-  let maxX = Math.max(...alive.map(e=>e.x + e.w));
-  const move = enemyDir * enemySpeed * dt;
-  if(minX + move < 6 || maxX + move > W - 6){
-    enemyDir *= -1;
-    alive.forEach(e => e.y += 18);
-  } else {
-    alive.forEach(e => e.x += move);
-  }
+  // enemies move
+  const alive=enemies.filter(e=>e.alive);
+  if(alive.length===0){enemySpeed+=8;resetWave();return;}
+  let minX=Math.min(...alive.map(e=>e.x)),maxX=Math.max(...alive.map(e=>e.x+e.w));
+  const move=enemyDir*enemySpeed*dt;
+  if(minX+move<6||maxX+move>W-6){enemyDir*=-1;alive.forEach(e=>e.y+=18);}else alive.forEach(e=>e.x+=move);
 
-  // enemy bullets (very simple: occasional random enemy shoots)
-  if(Math.random() < 0.01){
-    let cols = {};
-    enemies.forEach(e=>{ if(e.alive) cols[e.x] = e });
-    let keysCols = Object.keys(cols);
-    if(keysCols.length){
-      let pick = cols[keysCols[Math.floor(Math.random()*keysCols.length)]];
-      bullets.push({x: pick.x + pick.w/2 - 2, y: pick.y + pick.h, w:4, h:8, vy:120, owner:'enemy'});
+  // enemy fire
+  if(Math.random()<0.015){
+    let shooters=enemies.filter(e=>e.alive);
+    if(shooters.length){
+      let e=shooters[Math.floor(Math.random()*shooters.length)];
+      bullets.push({x:e.x+e.w/2-2,y:e.y+e.h,w:4,h:8,vy:120,owner:'e'});
     }
   }
-
-  // enemy bullets hit player
-  for(let i=bullets.length-1;i>=0;i--){
-    let b = bullets[i];
-    if(b.owner === 'enemy' && rectsOverlap(b, player)){
-      bullets.splice(i,1);
-      lives--;
-      updateUI();
-      if(lives <= 0){ running = false; menu.style.display = 'block'; menu.querySelector('h2').textContent = 'Game Over'; }
-    }
-  }
-
-  // enemies reaching player -> game over
-  if(alive.some(e => e.y + e.h >= player.y)){
-    running = false;
-    menu.style.display = 'block';
-    menu.querySelector('h2').textContent = 'Game Over - Invaders Landed';
-  }
+  // enemy reach player
+  if(alive.some(e=>e.y+e.h>=player.y)){running=false;alert('Invaders Landed!');}
 }
 
-function createNextWave(){
-  // slightly faster and new enemies
-  enemySpeed += 8;
-  const cols = 8, rows = 3;
-  const startX = 60, startY = 40;
-  const gapX = 56, gapY = 36;
-  enemies = [];
-  for(let r=0;r<rows;r++){
-    for(let c=0;c<cols;c++){
-      enemies.push({x:startX + c*gapX, y:startY + r*gapY, w:30, h:18, alive:true});
-    }
-  }
+function resetWave(){
+  const cols=8,rows=3,startX=60,startY=40,gapX=56,gapY=36;
+  enemies=[];
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)
+    enemies.push({x:startX+c*gapX,y:startY+r*gapY,w:30,h:18,alive:true});
 }
 
 function render(){
-  // clear
   ctx.clearRect(0,0,W,H);
-
-  // player
-  ctx.fillStyle = '#7ff';
-  ctx.fillRect(player.x, player.y, player.w, player.h);
-
-  // bullets
-  bullets.forEach(b=>{
-    ctx.fillStyle = (b.owner==='player') ? '#cff' : '#f88';
-    ctx.fillRect(b.x, b.y, b.w, b.h);
-  });
-
-  // enemies
-  enemies.forEach(e=>{
-    if(!e.alive) return;
-    ctx.fillStyle = '#9f9';
-    ctx.fillRect(e.x, e.y, e.w, e.h);
-  });
+  ctx.fillStyle='#7ff';ctx.fillRect(player.x,player.y,player.w,player.h);
+  for(let b of bullets){ctx.fillStyle=b.owner==='p'?'#cff':'#f88';ctx.fillRect(b.x,b.y,b.w,b.h);}
+  for(let e of enemies){if(e.alive){ctx.fillStyle='#9f9';ctx.fillRect(e.x,e.y,e.w,e.h);}}
 }
 
-let last = performance.now();
+let last=performance.now();
 function loop(t){
-  const dt = Math.min(0.05, (t - last)/1000);
-  last = t;
-  update(dt);
-  render();
+  const dt=Math.min(0.05,(t-last)/1000);last=t;
+  update(dt);render();
   requestAnimationFrame(loop);
 }
 
-// input
-window.addEventListener('keydown', e=> keys[e.key] = true);
-window.addEventListener('keyup', e=> keys[e.key] = false);
+// input keyboard
+window.addEventListener('keydown',e=>keys[e.key]=true);
+window.addEventListener('keyup',e=>keys[e.key]=false);
 
-// start / restart button
-startBtn.addEventListener('click', ()=>{
-  reset();
-  last = performance.now();
-  requestAnimationFrame(loop);
-});
+// touch buttons
+function hold(btn,prop){btn.onmousedown=()=>touch[prop]=true;btn.onmouseup=()=>touch[prop]=false;
+btn.ontouchstart=e=>{e.preventDefault();touch[prop]=true};
+btn.ontouchend=e=>{e.preventDefault();touch[prop]=false};}
+hold(leftBtn,'left');hold(rightBtn,'right');hold(shootBtn,'shoot');
 
-// initialize menu visible, waiting for start
-menu.style.display = 'block';
-menu.querySelector('h2').textContent = 'Simple Space Invaders';
+// start
+startBtn.onclick=()=>{reset();last=performance.now();requestAnimationFrame(loop);}
 </script>
 </body>
 </html>

@@ -1,100 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Eidun Sports & Gaming — Videos</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    .video-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 16px;
-      padding: 16px;
-    }
-    .video-item iframe {
-      width: 100%;
-      height: 0;
-      padding-bottom: 56.25%; /* 16:9 ratio */
-      position: relative;
-    }
-    .video-item iframe {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-    }
-    .video-item {
-      position: relative;
-      padding-top: 56.25%;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Secret Page</title>
+<style>
+  html,body {
+    height:100%;
+    margin:0;
+    background:linear-gradient(180deg,#02040a,#041a26);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#0f0;
+    font-family:Arial,Helvetica,sans-serif;
+    text-align:center;
+  }
+  .box {
+    background:rgba(0,0,0,0.6);
+    border:2px solid #0f0;
+    border-radius:10px;
+    padding:40px 60px;
+    box-shadow:0 0 20px #0f0;
+  }
+  h1 {
+    font-size:2em;
+    margin-bottom:0.5em;
+  }
+  p {
+    color:#8f8;
+  }
+</style>
 </head>
 <body>
-  <h1>Eidun Sports & Gaming — All Videos</h1>
-  <div id="videos" class="video-grid"></div>
-
-  <script>
-    // — CONFIGURE THESE —
-    const apiKey = 'YOUR_YOUTUBE_API_KEY';
-    const channelId = 'UCzZ_Ymrr0wLan40ZAcoDYQQ';
-
-    // Fetch videos from channel:
-    async function fetchVideos(pageToken = '') {
-      const url = new URL('https://www.googleapis.com/youtube/v3/search');
-      url.search = new URLSearchParams({
-        part: 'snippet',
-        channelId: channelId,
-        maxResults: 12,
-        order: 'date',
-        pageToken: pageToken,
-        key: apiKey
-      });
-
-      const resp = await fetch(url);
-      const data = await resp.json();
-      return data;
-    }
-
-    function makeVideoEmbed(videoId) {
-      const div = document.createElement('div');
-      div.className = 'video-item';
-      const iframe = document.createElement('iframe');
-      iframe.src = `https://www.youtube.com/embed/${videoId}`;
-      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-      iframe.allowFullscreen = true;
-      div.appendChild(iframe);
-      return div;
-    }
-
-    async function loadAllVideos(pageToken = '') {
-      const data = await fetchVideos(pageToken);
-      const videosContainer = document.getElementById('videos');
-
-      if (data.items) {
-        data.items.forEach(item => {
-          // Only include actual video items
-          if (item.id.kind === 'youtube#video') {
-            const vid = item.id.videoId;
-            videosContainer.appendChild(makeVideoEmbed(vid));
-          }
-        });
-      }
-
-      // If there is a next page, load more (you may want to limit total)
-      if (data.nextPageToken) {
-        await loadAllVideos(data.nextPageToken);
-      }
-    }
-
-    // Kick off
-    loadAllVideos().catch(err => {
-      console.error('Error loading videos:', err);
-      const c = document.getElementById('videos');
-      c.innerHTML = '<p>Could not load videos. Check console for errors.</p>';
-    });
-  </script>
+  <div class="box">
+    <h1>🎉 You’ve Found the Secret Page 🎉</h1>
+    <p>Congratulations, explorer. Keep this between us!</p>
+  </div>
 </body>
 </html>

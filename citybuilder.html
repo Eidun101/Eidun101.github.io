@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mini City Builder</title>
+<style>
+  :root{
+    --bg:#081221; --panel:#0b2233; --accent:#3fe5a7; --muted:#9fb4c4; --tile:#0f2b3a;
+    --tile-border: rgba(255,255,255,0.03);
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#06121a,#02232c);color:#e6f7f1;font-family:Inter,system-ui,Arial;}
+  .app{display:flex;gap:12px;padding:12px;box-sizing:border-box;height:100%;}
+  /* Left side: game area */
+  .left{flex:1;display:flex;flex-direction:column;gap:10px;align-items:center;}
+  .topbar{width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .stats{background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);display:flex;gap:12px;align-items:center}
+  .controls{display:flex;gap:8px;align-items:center}
+  button{background:var(--panel);border:1px solid rgba(255,255,255,0.04);color:var(--accent);padding:8px 10px;border-radius:8px;cursor:pointer;font-weight:600}
+  button.secondary{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.02)}
+  .centered{display:grid;place-items:center}
+  /* Grid area */
+  .board-wrap{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);width:100%;max-width:900px}
+  .board{display:grid;background:linear-gradient(180deg,#06232b,#06343c);border-radius:6px;padding:6px;gap:6px}
+  .tile{width:48px;height:48px;border-radius:6px;background:var(--tile);border:1px solid var(--tile-border);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);user-select:none}
+  .tile.small{width:40px;height:40px;font-size:11px}
+  .tile .label{font-size:11px;color:#bfe9d8;text-align:center}
+  /* Right side: panel */
+  .right{width:320px;min-width:260px;display:flex;flex-direction:column;gap:12px}
+  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.02)}
+  .build-list{display:flex;flex-direction:column;gap:8px}
+  .build-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;background:rgba(255,255,255,0.015);cursor:pointer}
+  .build-item.selected{outline:2px solid rgba(63,229,167,0.18);box-shadow:0 6px 20px rgba(0,0,0,0.5)}
+  .meta{font-size:13px;color:var(--muted)}
+  .small{font-size:13px;color:var(--muted)}
+  footer{margin-top:auto;font-size:12px;color:rgba(255,255,255,0.6);text-align:center}
+  /* responsive */
+  @media (max-width:900px){ .app{flex-direction:column} .right{width:100%;min-width:unset} .board{gap:4px} .tile{width:40px;height:40px} }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="left">
+      <div class="topbar" style="width:100%;max-width:980px">
+        <div class="stats">
+          <div><strong>Day</strong> <span id="day">1</span></div>
+          <div style="margin-left:8px"><strong>Money</strong> $<span id="money">0</span></div>
+          <div style="margin-left:8px"><strong>Food</strong> <span id="food">0</span></div>
+          <div style="margin-left:8px"><strong>Pop</strong> <span id="population">0</span></div>
+          <div style="margin-left:8px"><strong>Happiness</strong> <span id="happiness">0</span></div>
+        </div>
+        <div class="controls">
+          <button id="playPause">Pause</button>
+          <select id="speed" title="tick speed" style="background:var(--panel);border-radius:8px;padding:8px;color:var(--muted)">
+            <option value="1">1x</option>
+            <option value="2">2x</option>
+            <option value="4">4x</option>
+          </select>
+          <button class="secondary" id="saveBtn">Save</button>
+          <button class="secondary" id="loadBtn">Load</button>
+          <button class="secondary" id="resetBtn">Reset</button>
+        </div>
+      </div>
+
+      <div class="board-wrap centered" style="width:100%;max-width:920px">
+        <div id="board" class="board" style="grid-template-columns: repeat(12, 1fr);"></div>
+      </div>
+      <div style="width:100%;max-width:920px;display:flex;justify-content:space-between;margin-top:8px">
+        <div class="small">Tip: choose a building, then click a tile to place it. Use Upgrade or Demolish tools.</div>
+        <div class="small">Autosaves every 10s</div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="panel">
+        <h3 style="margin:0 0 8px 0;color:var(--accent)">Build Menu</h3>
+        <div class="build-list" id="buildList"></div>
+      </div>
+
+      <div class="panel">
+        <h4 style="margin:0 0 8px 0">Tools</h4>
+        <div style="display:flex;gap:8px">
+          <button id="toolPlace" class="selected">Place</button>
+          <button id="toolUpgrade">Upgrade</button>
+          <button id="toolDemolish">Demolish</button>
+        </div>
+        <div style="margin-top:10px" class="small">
+          Selected: <span id="selectedName">None</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h4 style="margin:0 0 8px 0">Details</h4>
+        <div id="detailArea" class="small">Click a tile to see details.</div>
+      </div>
+
+      <div class="panel">
+        <h4 style="margin:0 0 8px 0">Game</h4>
+        <div style="display:flex;gap:8px">
+          <button id="manualTick">Advance Day</button>
+          <button id="cheatMoney" class="secondary">+ $1000</button>
+        </div>
+        <div style="margin-top:8px" class="small">Objective: Grow population and keep food & money stable.</div>
+      </div>
+
+      <footer>Mini City Builder — demo</footer>
+    </div>
+  </div>
+
+<script>
+/* -------------------------
+   City Builder - Single File
+   ------------------------- */
+
+const COLS = 12, ROWS = 12;
+const boardEl = document.getElementById('board');
+const dayEl = document.getElementById('day');
+const moneyEl = document.getElementById('money');
+const foodEl = document.getElementById('food');
+const popEl = document.getElementById('population');
+const happyEl = document.getElementById('happiness');
+const buildListEl = document.getElementById('buildList');
+const selectedNameEl = document.getElementById('selectedName');
+const detailArea = document.getElementById('detailArea');
+
+let state = {
+  day: 1,
+  money: 200,
+  food: 50,
+  population: 0,
+  happiness: 50,
+  grid: [], // each tile: {b:null or {type,level}}
+  selected: null, // build type key
+  tool: 'place', // 'place'|'upgrade'|'demolish'
+  running: true,
+  tickInterval: 1000,
+};
+
+// building definitions
+const BUILDINGS = {
+  empty: { name:'Empty', desc:'Empty land' },
+  road: { name:'Road', cost: 5, upkeep:0, desc:'Basic road. Needed for connectivity.'},
+  house: { name:'House', cost: 30, upkeep:1, produce:{population:2}, happiness:0, desc:'Housing increases population.'},
+  farm: { name:'Farm', cost: 40, upkeep:1, produce:{food:6}, desc:'Produces food each day.'},
+  factory: { name:'Factory', cost: 120, upkeep:4, produce:{money:12}, happiness:-2, desc:'Produces money but hurts happiness.'},
+  park: { name:'Park', cost: 50, upkeep:0.5, produce:{happiness:4}, desc:'Increases happiness.'}
+};
+
+// create UI for build list
+function makeBuildUI(){
+  buildListEl.innerHTML = '';
+  Object.keys(BUILDINGS).forEach(key => {
+    if (key === 'empty') return;
+    const b = BUILDINGS[key];
+    const wrap = document.createElement('div');
+    wrap.className = 'build-item';
+    wrap.dataset.key = key;
+    wrap.innerHTML = `<div>
+      <div style="font-weight:700;color:#cfe9d8">${b.name}</div>
+      <div class="meta">${b.desc}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-weight:800;color:var(--accent)">$${b.cost}</div>
+      <div class="meta">up ${b.upkeep ?? 0}/day</div>
+    </div>`;
+    wrap.addEventListener('click', ()=> {
+      document.querySelectorAll('.build-item').forEach(el=>el.classList.remove('selected'));
+      wrap.classList.add('selected');
+      state.selected = key;
+      selectedNameEl.textContent = BUILDINGS[key].name;
+    });
+    buildListEl.appendChild(wrap);
+  });
+}
+makeBuildUI();
+
+// initialize grid state
+function initGrid(){
+  state.grid = [];
+  boardEl.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+  boardEl.innerHTML = '';
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const idx = r*COLS + c;
+      state.grid[idx] = { b: null }; // empty
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.dataset.index = idx;
+      tile.innerHTML = `<div class="label">.</div>`;
+      tile.addEventListener('click', onTileClick);
+      boardEl.appendChild(tile);
+    }
+  }
+  renderGrid();
+}
+initGrid();
+
+// render function
+function renderGrid(){
+  for(let i=0;i<state.grid.length;i++){
+    const el = boardEl.children[i];
+    const cell = state.grid[i];
+    el.className = 'tile';
+    el.innerHTML = '';
+    if (!cell.b){
+      el.style.background = 'linear-gradient(180deg,#072b33,#063847)';
+      el.innerHTML = `<div class="label">.</div>`;
+    } else {
+      const t = cell.b.type;
+      const lvl = cell.b.level || 1;
+      const info = BUILDINGS[t];
+      // colors per building
+      let bg = '#0d3b2f', color = '#bfe9d8';
+      if (t === 'road'){ bg = '#283c3f'; color='#d2e6e4'; }
+      if (t === 'house'){ bg = '#1b3a5a'; color='#cfe9ff'; }
+      if (t === 'farm'){ bg = '#315a25'; color='#e8f7dd'; }
+      if (t === 'factory'){ bg = '#40281f'; color='#ffd6c2'; }
+      if (t === 'park'){ bg = '#2b5b3a'; color='#dff5de'; }
+      el.style.background = `linear-gradient(180deg, ${shade(bg,10)}, ${bg})`;
+      el.innerHTML = `<div style="text-align:center">
+        <div style="font-weight:700;color:${color}">${info.name}</div>
+        <div style="font-size:11px;color:var(--muted)">Lv ${lvl}</div>
+      </div>`;
+    }
+  }
+  updateHUD();
+}
+
+function updateHUD(){
+  dayEl.textContent = state.day;
+  moneyEl.textContent = Math.floor(state.money);
+  foodEl.textContent = Math.floor(state.food);
+  popEl.textContent = Math.floor(state.population);
+  happyEl.textContent = Math.max(0, Math.min(100, Math.round(state.happiness)));
+}
+
+// tile click handler
+function onTileClick(e){
+  const idx = Number(e.currentTarget.dataset.index);
+  const cell = state.grid[idx];
+  if (state.tool === 'place'){
+    if (!state.selected){ alert('Select a building to place.'); return; }
+    const key = state.selected;
+    const cost = BUILDINGS[key].cost || 0;
+    if (state.money < cost){ alert('Not enough money'); return; }
+    // simple placement rules: allow building anywhere, but factories require adjacent road (optional)
+    if (key === 'factory'){
+      const adj = getAdjacent(idx);
+      if (!adj.some(i=>state.grid[i] && state.grid[i].b && state.grid[i].b.type === 'road')) {
+        if (!confirm('Factory is not adjacent to a road. Place anyway?')) return;
+      }
+    }
+    // place
+    state.grid[idx].b = { type: key, level: 1 };
+    state.money -= cost;
+    renderGrid();
+  } else if (state.tool === 'upgrade'){
+    if (!cell.b) { alert('No building to upgrade'); return; }
+    const upgradeCost = Math.floor((BUILDINGS[cell.b.type].cost || 10) * 0.75 * (cell.b.level || 1));
+    if (state.money < upgradeCost){ alert('Not enough money to upgrade'); return; }
+    state.money -= upgradeCost;
+    cell.b.level = (cell.b.level || 1) + 1;
+    renderGrid();
+  } else if (state.tool === 'demolish'){
+    if (!cell.b){ alert('Nothing to demolish'); return; }
+    // get partial refund
+    const refund = Math.floor((BUILDINGS[cell.b.type].cost || 0) * 0.45);
+    state.money += refund;
+    cell.b = null;
+    renderGrid();
+  }
+  showTileDetail(idx);
+}
+
+// show detail for tile
+function showTileDetail(idx){
+  const cell = state.grid[idx];
+  if (!cell.b){
+    detailArea.innerHTML = `<div><strong>Empty land</strong></div><div class="meta">Click to build</div>`;
+    return;
+  }
+  const b = cell.b;
+  const def = BUILDINGS[b.type];
+  let html = `<div><strong>${def.name} (Lv ${b.level})</strong></div>`;
+  html += `<div class="meta">${def.desc}</div>`;
+  html += `<div style="margin-top:6px" class="meta">Upkeep: ${def.upkeep ?? 0}/day</div>`;
+  html += `<div style="margin-top:6px"><button id="upgradeHere">Upgrade</button> <button id="demoHere" class="secondary">Demolish</button></div>`;
+  detailArea.innerHTML = html;
+  document.getElementById('upgradeHere').addEventListener('click', ()=> {
+    state.tool = 'upgrade';
+    document.getElementById('toolUpgrade').classList.add('selected');
+    document.getElementById('toolPlace').classList.remove('selected');
+    document.getElementById('toolDemolish').classList.remove('selected');
+    onTileClick({ currentTarget: { dataset: { index: String(idx) } } });
+  });
+  document.getElementById('demoHere').addEventListener('click', ()=> {
+    state.tool = 'demolish';
+    document.getElementById('toolDemolish').classList.add('selected');
+    document.getElementById('toolUpgrade').classList.remove('selected');
+    document.getElementById('toolPlace').classList.remove('selected');
+    onTileClick({ currentTarget: { dataset: { index: String(idx) } } });
+  });
+}
+
+/* -------------------------
+   Game tick / Economy
+   ------------------------- */
+
+function gameTick(){
+  // resources produced/consumed by buildings
+  let dailyMoney = 0;
+  let dailyFood = 0;
+  let deltaPop = 0;
+  let deltaHappy = 0;
+  let upkeepTotal = 0;
+
+  state.grid.forEach(cell => {
+    if (!cell.b) return;
+    const def = BUILDINGS[cell.b.type];
+    const lvl = cell.b.level || 1;
+    const mult = 1 + (lvl-1)*0.6;
+    // upkeep
+    const up = (def.upkeep || 0) * mult;
+    upkeepTotal += up;
+    // produces
+    if (def.produce){
+      Object.keys(def.produce).forEach(k => {
+        const val = def.produce[k] * mult;
+        if (k === 'money') dailyMoney += val;
+        if (k === 'food') dailyFood += val;
+        if (k === 'population') deltaPop += val;
+        if (k === 'happiness') deltaHappy += val;
+      });
+    }
+    // happiness penalty from factory
+    if (def.happiness) deltaHappy += def.happiness * mult;
+  });
+
+  // apply upkeep
+  state.money += (dailyMoney - upkeepTotal);
+  state.food += dailyFood;
+  // population grows/shrinks depending on food and happiness
+  // simple rule: pop increases proportionally to happiness and available food
+  const foodPerPerson = 1.0;
+  const maxPossiblePopFromFood = Math.floor(state.food / foodPerPerson);
+  // population change from housing and food: houses create space; farms create food to support population
+  // We'll approximate: deltaPop (from houses) adds capacity; actual growth limited by food
+  state.population += deltaPop;
+  // clamp population based on available food
+  if (state.population > maxPossiblePopFromFood){
+    // starved -> population declines a little
+    const excess = state.population - maxPossiblePopFromFood;
+    const decline = Math.min(excess, Math.max(1, excess*0.15));
+    state.population -= decline;
+    state.happiness -= 6;
+  } else {
+    // growth bonus if happiness good
+    state.population += Math.max(0, Math.floor((state.happiness - 50)/25));
+  }
+
+  // happiness change
+  state.happiness += deltaHappy * 0.6;
+  // clamp values
+  state.money = Math.max(-10000, state.money);
+  state.food = Math.max(0, state.food);
+  state.population = Math.max(0, Math.floor(state.population));
+  state.happiness = Math.max(0, Math.min(100, state.happiness));
+
+  // day increment
+  state.day += 1;
+
+  // random events
+  maybeEvent();
+
+  // update UI
+  renderGrid();
+  checkEndConditions();
+}
+
+// random events
+function maybeEvent(){
+  const r = Math.random();
+  if (r < 0.06){
+    // good event: festival increases happiness but costs money
+    const cost = 30;
+    if (state.money >= cost){ state.money -= cost; state.happiness += 6; toast('Town festival! Happiness +6 (cost $'+cost+')'); }
+  } else if (r < 0.10){
+    // bad event: storm damages farms (reduces food)
+    const loss = Math.floor(Math.random()*10 + 5);
+    state.food = Math.max(0, state.food - loss);
+    toast('Storm damaged food stores: -' + loss + ' food');
+  }
+}
+
+/* -------------------------
+   Helpers / UI wiring
+   ------------------------- */
+
+document.getElementById('toolPlace').addEventListener('click', ()=> setTool('place'));
+document.getElementById('toolUpgrade').addEventListener('click', ()=> setTool('upgrade'));
+document.getElementById('toolDemolish').addEventListener('click', ()=> setTool('demolish'));
+
+function setTool(t){
+  state.tool = t;
+  document.getElementById('toolPlace').classList.toggle('selected', t==='place');
+  document.getElementById('toolUpgrade').classList.toggle('selected', t==='upgrade');
+  document.getElementById('toolDemolish').classList.toggle('selected', t==='demolish');
+}
+
+document.getElementById('playPause').addEventListener('click', ()=>{
+  state.running = !state.running;
+  document.getElementById('playPause').textContent = state.running ? 'Pause' : 'Play';
+});
+
+document.getElementById('speed').addEventListener('change', (e)=>{
+  const v = Number(e.target.value);
+  state.tickInterval = 1000 / v;
+});
+
+document.getElementById('manualTick').addEventListener('click', ()=> {
+  gameTick();
+  updateHUD();
+});
+
+document.getElementById('saveBtn').addEventListener('click', saveGame);
+document.getElementById('loadBtn').addEventListener('click', loadGame);
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if (!confirm('Reset city?')) return;
+  state = { day:1, money:200, food:50, population:0, happiness:50, grid: [], selected:null, tool:'place', running:true, tickInterval:1000 };
+  initGrid();
+  makeBuildUI();
+});
+
+document.getElementById('cheatMoney').addEventListener('click', ()=> { state.money += 1000; updateHUD(); });
+
+function saveGame(){
+  const payload = JSON.stringify(state);
+  localStorage.setItem('mini_city_save_v1', payload);
+  toast('Game saved');
+}
+
+function loadGame(){
+  const raw = localStorage.getItem('mini_city_save_v1');
+  if (!raw){ alert('No save found'); return; }
+  try {
+    const loaded = JSON.parse(raw);
+    state = loaded;
+    // ensure grid cells exist
+    if (!state.grid || state.grid.length !== ROWS*COLS) initGrid();
+    else {
+      // redraw board
+      renderGrid();
+    }
+    toast('Game loaded');
+  } catch(e){
+    alert('Failed to load save');
+  }
+}
+
+// autosave
+setInterval(()=> saveGame(), 10000);
+
+// periodic tick loop
+let lastTick = performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  if (!state.running) return;
+  const speedMultiplier = Number(document.getElementById('speed').value) || 1;
+  if (now - lastTick >= (1000 / speedMultiplier)){
+    lastTick = now;
+    gameTick();
+  }
+}
+requestAnimationFrame(loop);
+
+/* -------------------------
+   Utility functions
+   ------------------------- */
+
+function getAdjacent(idx){
+  const res = [];
+  const r = Math.floor(idx / COLS);
+  const c = idx % COLS;
+  const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+  dirs.forEach(d => {
+    const nr = r + d[0], nc = c + d[1];
+    if (nr >=0 && nr < ROWS && nc >=0 && nc < COLS) res.push(nr*COLS + nc);
+  });
+  return res;
+}
+
+function shade(hex, percent){
+  // expects hex like #123456
+  const h = hex.replace('#','');
+  const num = parseInt(h,16);
+  let r = (num >> 16) + Math.round(255 * percent/100);
+  let g = ((num >> 8) & 0x00FF) + Math.round(255 * percent/100);
+  let b = (num & 0x0000FF) + Math.round(255 * percent/100);
+  r = Math.max(0, Math.min(255, r));
+  g = Math.max(0, Math.min(255, g));
+  b = Math.max(0, Math.min(255, b));
+  return '#' + ( (1<<24) + (r<<16) + (g<<8) + b ).toString(16).slice(1);
+}
+
+/* lightweight toast */
+let toastTimeout = null;
+function toast(msg){
+  const t = document.createElement('div');
+  t.style.position = 'fixed';
+  t.style.left = '50%';
+  t.style.bottom = '24px';
+  t.style.transform = 'translateX(-50%)';
+  t.style.background = 'rgba(0,0,0,0.7)';
+  t.style.padding = '8px 12px';
+  t.style.borderRadius = '8px';
+  t.style.color = '#dfffe9';
+  t.style.zIndex = 9999;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  if (toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(()=> {
+    t.remove();
+  }, 2400);
+}
+
+// show tile detail on hover (mobile taps use click)
+boardEl.addEventListener('mousemove', (e)=> {
+  const tile = e.target.closest('.tile');
+  if (!tile) return;
+  const idx = Number(tile.dataset.index);
+  // quick preview
+});
+boardEl.addEventListener('click', (e)=> {
+  const tile = e.target.closest('.tile');
+  if (!tile) return;
+  showTileDetail(Number(tile.dataset.index));
+});
+
+// initial HUD
+updateHUD();
+renderGrid();
+
+/* End of file */
+</script>
+</body>
+</html>

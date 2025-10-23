@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Florida Map</title>
+  <title>Florida Aerial Map (No Login)</title>
 
-  <!-- Esri ArcGIS JavaScript API -->
-  <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css" />
+  <!-- Esri ArcGIS JS API (Public CDN, no account required) -->
+  <link
+    rel="stylesheet"
+    href="https://js.arcgis.com/4.29/esri/themes/light/main.css"
+  />
   <script src="https://js.arcgis.com/4.29/"></script>
 
   <style>
@@ -17,26 +20,26 @@
       width: 100%;
     }
 
-    /* Simple overlay title */
+    /* Overlay title */
     #title {
       position: absolute;
       top: 12px;
       left: 12px;
       z-index: 99;
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(0, 0, 0, 0.6);
       padding: 10px 15px;
       border-radius: 8px;
       font-family: "Segoe UI", sans-serif;
       font-size: 1.2em;
       font-weight: bold;
-      color: #006494;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+      color: #fff;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.3);
     }
   </style>
 </head>
 
 <body>
-  <div id="title">🌴 Florida Map</div>
+  <div id="title">🛰️ Florida Aerial Map</div>
   <div id="viewDiv"></div>
 
   <script>
@@ -45,26 +48,25 @@
       "esri/views/MapView",
       "esri/Graphic",
       "esri/layers/GraphicsLayer"
-    ], function(Map, MapView, Graphic, GraphicsLayer) {
+    ], function (Map, MapView, Graphic, GraphicsLayer) {
 
-      // Create the map
+      // Create a map using the free, public aerial basemap with labels
       const map = new Map({
-        basemap: "arcgis/topographic" // You can change to "streets", "satellite", etc.
+        basemap: "satellite-vector" // Aerial imagery + roads + labels
       });
 
-      // Create the map view (centered on Florida)
+      // Create map view centered on Florida
       const view = new MapView({
         container: "viewDiv",
         map: map,
-        center: [-81.5158, 27.6648], // Florida coordinates
-        zoom: 6
+        center: [-81.5158, 27.6648],
+        zoom: 7
       });
 
-      // Add layer for graphics (markers)
+      // Optional: Add custom city markers
       const graphicsLayer = new GraphicsLayer();
       map.add(graphicsLayer);
 
-      // Major Florida cities
       const cities = [
         { name: "Miami", coords: [-80.1918, 25.7617] },
         { name: "Orlando", coords: [-81.3792, 28.5383] },
@@ -73,7 +75,6 @@
         { name: "Tallahassee", coords: [-84.2807, 30.4383] }
       ];
 
-      // Add city markers
       cities.forEach(city => {
         const point = {
           type: "point",
@@ -83,9 +84,9 @@
 
         const symbol = {
           type: "simple-marker",
-          color: [0, 102, 204, 0.9],
+          color: [255, 255, 255, 0.9],
           size: 10,
-          outline: { color: [255, 255, 255], width: 1.5 }
+          outline: { color: [0, 102, 255], width: 2 }
         };
 
         const popup = {
@@ -106,4 +107,3 @@
   </script>
 </body>
 </html>
-

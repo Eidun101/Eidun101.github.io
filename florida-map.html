@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Florida Map</title>
+
+  <!-- Esri ArcGIS JavaScript API -->
+  <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css" />
+  <script src="https://js.arcgis.com/4.29/"></script>
+
+  <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+
+    /* Simple overlay title */
+    #title {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 99;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-family: "Segoe UI", sans-serif;
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #006494;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="title">🌴 Florida Map</div>
+  <div id="viewDiv"></div>
+
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/Graphic",
+      "esri/layers/GraphicsLayer"
+    ], function(Map, MapView, Graphic, GraphicsLayer) {
+
+      // Create the map
+      const map = new Map({
+        basemap: "arcgis/topographic" // You can change to "streets", "satellite", etc.
+      });
+
+      // Create the map view (centered on Florida)
+      const view = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [-81.5158, 27.6648], // Florida coordinates
+        zoom: 6
+      });
+
+      // Add layer for graphics (markers)
+      const graphicsLayer = new GraphicsLayer();
+      map.add(graphicsLayer);
+
+      // Major Florida cities
+      const cities = [
+        { name: "Miami", coords: [-80.1918, 25.7617] },
+        { name: "Orlando", coords: [-81.3792, 28.5383] },
+        { name: "Tampa", coords: [-82.4572, 27.9506] },
+        { name: "Jacksonville", coords: [-81.6557, 30.3322] },
+        { name: "Tallahassee", coords: [-84.2807, 30.4383] }
+      ];
+
+      // Add city markers
+      cities.forEach(city => {
+        const point = {
+          type: "point",
+          longitude: city.coords[0],
+          latitude: city.coords[1]
+        };
+
+        const symbol = {
+          type: "simple-marker",
+          color: [0, 102, 204, 0.9],
+          size: 10,
+          outline: { color: [255, 255, 255], width: 1.5 }
+        };
+
+        const popup = {
+          title: `📍 ${city.name}`,
+          content: `${city.name} is one of Florida’s major cities.`
+        };
+
+        const graphic = new Graphic({
+          geometry: point,
+          symbol: symbol,
+          attributes: city,
+          popupTemplate: popup
+        });
+
+        graphicsLayer.add(graphic);
+      });
+    });
+  </script>
+</body>
+</html>
+

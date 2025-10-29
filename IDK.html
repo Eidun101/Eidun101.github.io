@@ -3,115 +3,88 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mobile FPS Shooter</title>
+<title>Simple Mobile Shooter</title>
 <style>
-  body { margin: 0; overflow: hidden; }
-  canvas { display: block; }
-  #shootBtn { position: absolute; bottom: 20px; right: 20px; width: 80px; height: 80px; border-radius: 50%; background: rgba(255,0,0,0.6); z-index: 10; }
+  body { margin:0; overflow:hidden; background:skyblue; position:relative; }
+  #floor { position:absolute; bottom:0; width:100%; height:50%; background:green; }
+  .target {
+    position:absolute;
+    width:50px; height:50px;
+    background:blue;
+    border-radius:5px;
+  }
+  .bullet {
+    position:absolute;
+    width:10px; height:10px;
+    background:red;
+    border-radius:50%;
+  }
+  #shootBtn {
+    position:absolute;
+    bottom:20px;
+    right:20px;
+    width:80px; height:80px;
+    border-radius:50%;
+    background:red;
+  }
+  #score {
+    position:absolute; top:10px; left:10px; font-size:24px; color:white;
+  }
 </style>
 </head>
 <body>
+<div id="floor"></div>
+<div id="score">Score: 0</div>
 <div id="shootBtn"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+
 <script>
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(0,2,5); 
-camera.lookAt(0,0,0);
-
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-// Light
-const light = new THREE.DirectionalLight(0xffffff,1);
-light.position.set(5,10,5);
-scene.add(light);
-
-// Floor
-const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(20,20),
-  new THREE.MeshPhongMaterial({color:0x228B22})
-);
-floor.rotation.x = -Math.PI/2;
-scene.add(floor);
-
-// Targets
+let score = 0;
 const targets = [];
-for(let i=-2;i<=2;i++){
-  const t = new THREE.Mesh(
-    new THREE.BoxGeometry(1,1,1),
-    new THREE.MeshPhongMaterial({color:0x0000ff})
-  );
-  t.position.set(i*2,0.5,0);
-  scene.add(t);
+const bullets = [];
+
+// Spawn 5 targets at random positions
+for(let i=0;i<5;i++){
+  const t = document.createElement('div');
+  t.className = 'target';
+  t.style.left = (Math.random()*window.innerWidth*0.8) + 'px';
+  t.style.top = (Math.random()*window.innerHeight*0.4) + 'px';
+  document.body.appendChild(t);
   targets.push(t);
 }
 
-// Bullets
-const bullets = [];
-const bulletSpeed = 0.5;
-
-// Shoot
+// Shoot bullets
 document.getElementById('shootBtn').addEventListener('touchstart', shoot);
 function shoot(){
-  const b = new THREE.Mesh(
-    new THREE.SphereGeometry(0.1,8,8),
-    new THREE.MeshBasicMaterial({color:0xff0000})
-  );
-  b.position.copy(camera.position);
-  b.quaternion.copy(camera.quaternion);
-  scene.add(b);
+  const b = document.createElement('div');
+  b.className='bullet';
+  b.style.left = (window.innerWidth/2 - 5)+'px';
+  b.style.top = (window.innerHeight - 100)+'px';
+  document.body.appendChild(b);
   bullets.push(b);
 }
 
-// Swipe to look around
-let isTouching = false;
-let prevX = 0, prevY = 0;
-let yaw = 0, pitch = 0;
-
-document.addEventListener('touchstart', e=>{
-  if(e.target.id !== 'shootBtn'){
-    isTouching = true;
-    prevX = e.touches[0].clientX;
-    prevY = e.touches[0].clientY;
-  }
-});
-document.addEventListener('touchmove', e=>{
-  if(isTouching){
-    let dx = e.touches[0].clientX - prevX;
-    let dy = e.touches[0].clientY - prevY;
-    prevX = e.touches[0].clientX;
-    prevY = e.touches[0].clientY;
-    yaw -= dx*0.002;
-    pitch -= dy*0.002;
-    pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
-    camera.rotation.set(pitch,yaw,0);
-  }
-});
-document.addEventListener('touchend', e=>{ isTouching=false; });
-
-// Animate
+// Animate bullets
 function animate(){
   requestAnimationFrame(animate);
-
   bullets.forEach((b,i)=>{
-    const f = new THREE.Vector3(0,0,-1).applyQuaternion(b.quaternion);
-    b.position.add(f.multiplyScalar(bulletSpeed));
+    let top = parseFloat(b.style.top);
+    top -= 10;
+    b.style.top = top+'px';
 
     targets.forEach((t,ti)=>{
-      if(b.position.distanceTo(t.position)<0.5){
-        scene.remove(t);
-        targets.splice(ti,1);
-        scene.remove(b);
-        bullets.splice(i,1);
+      const bt = b.getBoundingClientRect();
+      const tt = t.getBoundingClientRect();
+      if(!(bt.right<tt.left || bt.left>tt.right || bt.bottom<tt.top || bt.top>tt.bottom)){
+        // Collision
+        t.remove(); targets.splice(ti,1);
+        b.remove(); bullets.splice(i,1);
+        score++;
+        document.getElementById('score').innerText = 'Score: '+score;
       }
     });
-  });
 
-  renderer.render(scene,camera);
+    if(top < -10){ b.remove(); bullets.splice(i,1); }
+  });
 }
 animate();
 </script>

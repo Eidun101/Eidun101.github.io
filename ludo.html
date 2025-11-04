@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Ludo — Play &amp; Pass</title>
+<style>
+  :root{ --bg:#f3f3f3; --board:#fff; --size:92vmin; }
+  html,body{height:100%;margin:0;background:var(--bg);display:flex;align-items:center;justify-content:center;font-family:system-ui,Segoe UI,Roboto,Arial;}
+  #container{width:calc(var(--size)); height:calc(var(--size)); position:relative; box-shadow:0 8px 30px rgba(0,0,0,0.15); border-radius:8px; background:var(--board);}
+  canvas{display:block; width:100%; height:100%; border-radius:8px;}
+  #ui{position:absolute; right:8px; top:8px; display:flex; flex-direction:column; gap:8px; z-index:20;}
+  button{padding:10px 12px;border-radius:8px;border:none;background:#111;color:#fff;font-weight:600}
+  #log{position:absolute; left:8px; top:8px; background:rgba(255,255,255,0.9); padding:6px 8px; border-radius:6px; font-size:14px}
+  #players{position:absolute; left:8px; bottom:8px; right:8px; display:flex; gap:6px; justify-content:center}
+  .pbox{flex:1; padding:6px; text-align:center; background:rgba(255,255,255,0.9); border-radius:6px}
+  .active{box-shadow:0 3px 10px rgba(0,0,0,0.12)}
+  #dice{font-size:22px; font-weight:700; padding:12px;border-radius:8px;background:#fff;color:#111;text-align:center}
+  @media(max-width:600px){ :root{--size:96vmin} button{padding:8px 10px; font-size:14px} }
+</style>
+</head>
+<body>
+  <div id="container">
+    <canvas id="board"></canvas>
+
+    <div id="ui">
+      <button id="rollBtn">Roll Dice</button>
+      <div id="dice">—</div>
+      <button id="newBtn">New Game</button>
+    </div>
+
+    <div id="log">Tap Roll, then tap a token to move.</div>
+    <div id="players"></div>
+  </div>
+
+<script>
+/* Playable Ludo (single-file)
+   - Pass-and-play 2..4 players (default 4)
+   - Canvas-rendered ring-style Ludo board (robust on mobile)
+   - Dice roll, select token to move, capture, basic home logic
+*/
+
+/* CONFIG */
+const COLORS = [
+  {name:'Red', color:'#e74c3c'},
+  {name:'Green', color:'#27ae60'},
+  {name:'Yellow', color:'#f1c40f'},
+  {name:'Blue', color:'#2980b9'}
+];
+const PLAYERS_COUNT = 4; // 2..4 supported
+
+/* Canvas setup */
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+let W=300, H=300, cell=20;
+function resizeCanvas(){
+  canvas.width = canvas.clientWidth * devicePixelRatio;
+  canvas.height = canvas.clientHeight * devicePixelRatio;
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  W = canvas.clientWidth; H = canvas.clientHeight;
+  cell = Math.min(W,H) / 15;
+}
+resizeCanvas();
+window.addEventListener('resize', ()=>{ resizeCanvas(); draw(); });
+
+/* Path: 52 positions arranged around a ring to keep layout simple and robust */
+let path = [];
+function buildRingPath(){
+  const ring = [];
+  const cx = W/2, cy = H/2;
+  const radius = Math.min(W,H) * 0.38;
+  for(let k=0;k<52;k++){
+    const angle = (k/52)*Math.PI*2 - Math.PI/2; // start at top
+    ring.push({x: cx + Math.cos(angle)*radius, y: cy + Math.sin(angle)*radius});
+  }
+  return ring;
+}
+path = buildRingPath();
+
+/* Players & tokens */
+const players = [];
+for(let p=0;p<PLAYERS_COUNT;p++){
+  players.push({
+    id:p,
+    name: COLORS[p].name,
+    color: COLORS[p].color,
+    tokens: [-1,-1,-1,-1], // -1 = in yard, 0..51 on path, 52..57 home column, 58 finished sentinel
+    finishedCount: 0
+  });
+}
+
+let currentPlayer = 0;
+let rolled = false;
+let lastRoll = null;
+let canMoveIndices = [];
+
+/* UI helpers */
+function log(s){ document.getElementById('log').innerText = s; }
+function updatePlayersUI(){
+  const box = document.getElementById('players');
+  box.innerHTML = '';
+  for(let p=0;p<PLAYERS_COUNT;p++){
+    const el = document.createElement('div');
+    el.className = 'pbox' + (p===currentPlayer ? ' active' : '');
+    el.innerHTML = `<div style="font-weight:700;color:${players[p].color}">${players[p].name}</div>
+                    <div>Finished: ${players[p].finishedCount}</div>`;
+    box.appendChild(el);
+  }
+}
+
+/* Dice */
+document.getElementById('rollBtn').addEventListener('click', doRoll);
+document.getElementById('rollBtn').addEventListener('touchstart', (e)=>{ e.preventDefault(); doRoll(); });
+
+function doRoll(){
+  if(rolled){ log('Already rolled — tap a token to move or End Turn.'); return; }
+  const r = Math.floor(Math.random()*6)+1;
+  lastRoll = r; rolled = true;
+  document.getElementById('dice').innerText = r;
+  evaluateMoves();
+}
+
+/* Evaluate possible moves for current player */
+function evaluateMoves(){
+  canMoveIndices = [];
+  const ply = players[currentPlayer];
+  const r = lastRoll;
+
+  function occupiedBy(index){
+    if(index==null) return null;
+    for(let pi=0; pi<players.length; pi++){
+      for(let ti=0; ti<4; ti++){
+        if(players[pi].tokens[ti] === index) return {player:pi, token:ti};
+      }
+    }
+    return null;
+  }
+
+  for(let t=0;t<4;t++){
+    const pos = ply.tokens[t];
+    if(pos === -1){
+      if(r===6) canMoveIndices.push(t); // can enter yard on 6
+    } else if(pos >= 0 && pos < 52){
+      // normal path move
+      canMoveIndices.push(t);
+    } else if(pos >= 52 && pos < 58){
+      // in home column, allow move if within bounds
+      if(pos + r <= 58) canMoveIndices.push(t);
+    }
+  }
+
+  if(canMoveIndices.length===0){
+    log(`No moves available for ${ply.name}. Tap End Turn (double-tap board) or New Game.`);
+  } else {
+    log(`${ply.name} rolled ${r}. Tap a token to move.`);
+  }
+  draw();
+}
+
+/* Move logic (simplified but playable) */
+function moveToken(tokenIndex){
+  const ply = players[currentPlayer];
+  if(!rolled){ log('Roll the dice first.'); return; }
+  if(!canMoveIndices.includes(tokenIndex)){ log('That token cannot move.'); return; }
+  const r = lastRoll;
+
+  if(ply.tokens[tokenIndex] === -1){
+    // enter play at player's start
+    const start = Math.floor((52/PLAYERS_COUNT) * currentPlayer) % 52;
+    ply.tokens[tokenIndex] = start;
+    captureAt(start, currentPlayer, tokenIndex);
+    if(r===6){ rolled=false; lastRoll=null; document.getElementById('dice').innerText='—'; log('Moved out and get another roll!'); evaluateMoves(); return; }
+  } else if(ply.tokens[tokenIndex] >=0 && ply.tokens[tokenIndex] < 52){
+    const dest = (ply.tokens[tokenIndex] + r) % 52;
+    ply.tokens[tokenIndex] = dest;
+    captureAt(dest, currentPlayer, tokenIndex);
+    if(r===6){ rolled=false; lastRoll=null; document.getElementById('dice').innerText='—'; log('Rolled a 6: roll again.'); evaluateMoves(); return; }
+  } else {
+    // home column movement
+    ply.tokens[tokenIndex] += r;
+    if(ply.tokens[tokenIndex] >= 58){
+      ply.tokens[tokenIndex] = 58;
+      ply.finishedCount = ply.tokens.filter(x=>x===58).length;
+    }
+  }
+
+  // win check
+  if(ply.tokens.every(x=>x===58)){
+    log(`${ply.name} wins! Tap New Game to restart.`);
+    rolled=false; lastRoll=null; document.getElementById('dice').innerText='—';
+    draw();
+    return;
+  }
+
+  endTurn();
+}
+
+/* Capture logic: non-safe squares (we consider every 13th index safe) */
+function captureAt(index, pplayer, ptoken){
+  if(index % 13 === 0) return; // safe
+  for(let pi=0; pi<players.length; pi++){
+    if(pi===pplayer) continue;
+    for(let ti=0; ti<4; ti++){
+      if(players[pi].tokens[ti] === index){
+        players[pi].tokens[ti] = -1;
+        log(`${players[pplayer].name} captured ${players[pi].name}'s token!`);
+      }
+    }
+  }
+}
+
+/* End turn */
+function endTurn(){
+  rolled=false; lastRoll=null; document.getElementById('dice').innerText='—';
+  currentPlayer = (currentPlayer+1) % PLAYERS_COUNT;
+  updatePlayersUI();
+  log(`${players[currentPlayer].name}'s turn. Roll the dice.`);
+  draw();
+}
+
+/* Interaction: tap canvas to select/move tokens */
+canvas.addEventListener('click', handleTap);
+canvas.addEventListener('touchstart', (e)=>{ e.preventDefault(); const t = e.touches[0]; handleTap({clientX:t.clientX, clientY:t.clientY}); });
+
+function handleTap(evt){
+  const rect = canvas.getBoundingClientRect();
+  const x = (evt.clientX - rect.left);
+  const y = (evt.clientY - rect.top);
+  const hit = findTokenAt(x,y);
+  if(hit){
+    if(hit.player === currentPlayer){
+      moveToken(hit.token);
+    } else {
+      log('Tap your own token to move it.');
+    }
+  }
+}
+
+/* Hit testing tokens */
+function findTokenAt(px, py){
+  for(let p=0;p<players.length;p++){
+    for(let t=0;t<4;t++){
+      const pos = players[p].tokens[t];
+      const coord = tokenScreenPos(p,t,pos);
+      const dx = px - coord.x;
+      const dy = py - coord.y;
+      if(Math.sqrt(dx*dx + dy*dy) < Math.max(18, cell*0.9)) return {player:p, token:t};
+    }
+  }
+  return null;
+}
+
+/* Screen position for a token */
+function tokenScreenPos(playerIndex, tokenIndex, pos){
+  const pad = cell*1.2;
+  if(pos === -1){
+    const cornerOffsets = [
+      {x: pad*1.6, y: pad*1.6},                     // top-left Red
+      {x: W - pad*1.6, y: pad*1.6},                 // top-right Green
+      {x: pad*1.6, y: H - pad*1.6},                 // bottom-left Yellow
+      {x: W - pad*1.6, y: H - pad*1.6}              // bottom-right Blue
+    ];
+    const base = cornerOffsets[playerIndex];
+    const o = [{dx:-12,dy:-12},{dx:12,dy:-12},{dx:-12,dy:12},{dx:12,dy:12}][tokenIndex];
+    return {x: base.x + o.dx, y: base.y + o.dy};
+  } else if(pos >=0 && pos < 52){
+    const p = path[pos % path.length];
+    return {x: p.x, y: p.y};
+  } else {
+    // home lane near center
+    const centerPos = {x: W/2, y: H/2};
+    const dirs = [{dx:0,dy:-1},{dx:1,dy:0},{dx:0,dy:1},{dx:-1,dy:0}];
+    const dir = dirs[playerIndex];
+    const step = (pos - 52 + 1) * (cell*0.9);
+    return {x: centerPos.x + dir.dx * step, y: centerPos.y + dir.dy * step};
+  }
+}
+
+/* Drawing functions */
+function drawBoard(){
+  ctx.clearRect(0,0,W,H);
+  // background rounded
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  roundRect(ctx, 0, 0, W, H, 10);
+  ctx.fill();
+
+  // path dots
+  const dotR = Math.min(W,H) * 0.038;
+  for(let i=0;i<path.length;i++){
+    const p = path[i];
+    ctx.beginPath();
+    ctx.fillStyle = (i % 13 === 0) ? '#f7f7f7' : '#f1f1f1';
+    ctx.arc(p.x, p.y, dotR, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#ddd';
+    ctx.stroke();
+  }
+
+  // safe markers
+  ctx.fillStyle = '#eee';
+  for(let s=0;s<52;s+=13){
+    const p = path[s];
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, dotR*1.3, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#bbb'; ctx.stroke();
+  }
+
+  // center area
+  ctx.fillStyle = '#fafafa';
+  ctx.beginPath();
+  ctx.arc(W/2, H/2, Math.min(W,H)*0.18, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#eee'; ctx.stroke();
+}
+
+function drawTokens(){
+  for(let p=0;p<players.length;p++){
+    for(let t=0;t<4;t++){
+      drawToken(p,t);
+    }
+  }
+}
+function drawToken(playerIndex, tokenIndex){
+  const ply = players[playerIndex];
+  const pos = ply.tokens[tokenIndex];
+  const coord = tokenScreenPos(playerIndex, tokenIndex, pos);
+  const r = Math.min(W,H)*0.035;
+  ctx.beginPath();
+  ctx.fillStyle = ply.color;
+  ctx.arc(coord.x, coord.y, r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#222'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.font = `${Math.max(10, r*0.9)}px sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(String(tokenIndex+1), coord.x, coord.y);
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+/* main draw wrapper */
+function draw(){
+  resizeCanvas();
+  path = buildRingPath();
+  drawBoard();
+  drawTokens();
+  updatePlayersUI();
+}
+
+/* Game control: new game */
+function newGame(){
+  for(let p=0;p<players.length;p++){
+    players[p].tokens = [-1,-1,-1,-1];
+    players[p].finishedCount = 0;
+  }
+  currentPlayer = 0;
+  rolled = false; lastRoll = null;
+  document.getElementById('dice').innerText='—';
+  log(`${players[currentPlayer].name}'s turn. Roll the dice.`);
+  draw();
+}
+document.getElementById('newBtn').addEventListener('click', newGame);
+
+/* End turn helper (also bound to dblclick on canvas for convenience) */
+function endTurn(){
+  rolled=false; lastRoll=null; document.getElementById('dice').innerText='—';
+  currentPlayer = (currentPlayer+1) % PLAYERS_COUNT;
+  updatePlayersUI();
+  log(`${players[currentPlayer].name}'s turn. Roll the dice.`);
+  draw();
+}
+canvas.addEventListener('dblclick', ()=>{ endTurn(); });
+
+/* init */
+updatePlayersUI();
+newGame();
+</script>
+</body>
+</html>

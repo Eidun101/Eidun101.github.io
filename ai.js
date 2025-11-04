@@ -1,42 +1,14 @@
-export async function handler(event) {
-  const { message } = JSON.parse(event.body || "{}");
-
-  if (!message) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "No message provided" }),
-    };
+// ai.js
+function askAI() {
+  const question = prompt("Ask me a question:");
+  if (!question) {
+    alert("You didn't type a question!");
+    return;
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  // Encode the question for use in a Google search URL
+  const googleURL = "https://www.google.com/search?q=" + encodeURIComponent(question);
 
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: "You are EidAI, a friendly helpful chatbot." },
-          { role: "user", content: message },
-        ],
-      }),
-    });
-
-    const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || "No response.";
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ reply }),
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message }),
-    };
-  }
+  // Open Google search in a new tab
+  window.open(googleURL, "_blank");
 }

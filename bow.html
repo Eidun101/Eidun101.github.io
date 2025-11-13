@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Bow & Arrow</title>
+<style>
+  body{
+    margin:0;
+    background:linear-gradient(135deg,#0f172a,#1e293b);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    color:white;
+    font-family:sans-serif;
+    overflow:hidden;
+  }
+  canvas{
+    border:3px solid #38bdf8;
+    border-radius:12px;
+    background:#0a0a0a;
+  }
+  #score{
+    position:absolute;
+    top:15px;
+    left:50%;
+    transform:translateX(-50%);
+    color:#38bdf8;
+    font-size:1.2em;
+    font-weight:bold;
+  }
+</style>
+</head>
+<body>
+<div id="score">🎯 Score: 0</div>
+<canvas id="game" width="900" height="500"></canvas>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const scoreText=document.getElementById("score");
+
+let arrows=[];
+let targets=[];
+let score=0;
+
+const bow={x:100,y:canvas.height/2,size:50,angle:0};
+const gravity=0.2;
+
+// spawn moving targets
+function spawnTarget(){
+  const y=Math.random()*(canvas.height-60)+30;
+  const size=30;
+  const speed=3+Math.random()*2;
+  targets.push({x:canvas.width+size,y,size,speed});
+}
+setInterval(spawnTarget,1500);
+
+// draw bow
+function drawBow(){
+  ctx.save();
+  ctx.translate(bow.x,bow.y);
+  ctx.rotate(bow.angle);
+  ctx.strokeStyle="#38bdf8";
+  ctx.lineWidth=5;
+  ctx.beginPath();
+  ctx.arc(0,0,bow.size,Math.PI/2,-Math.PI/2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// draw arrow
+function drawArrow(a){
+  ctx.strokeStyle="#facc15";
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(a.x,a.y);
+  ctx.lineTo(a.x-20*Math.cos(a.angle),a.y-20*Math.sin(a.angle));
+  ctx.stroke();
+}
+
+// draw target
+function drawTarget(t){
+  ctx.beginPath();
+  ctx.arc(t.x,t.y,t.size,0,Math.PI*2);
+  ctx.fillStyle="#ef4444";
+  ctx.fill();
+  ctx.lineWidth=3;
+  ctx.strokeStyle="#fff";
+  ctx.stroke();
+}
+
+function update(){
+  // move targets
+  for(let t of targets){t.x-=t.speed;}
+  targets=targets.filter(t=>t.x>-t.size);
+
+  // move arrows
+  for(let a of arrows){
+    a.vy+=gravity;
+    a.x+=a.vx;
+    a.y+=a.vy;
+  }
+  arrows=arrows.filter(a=>a.x<canvas.width&&a.y>0&&a.y<canvas.height);
+
+  // check collisions
+  for(let a of arrows){
+    for(let t of targets){
+      const dx=a.x-t.x,dy=a.y-t.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<t.size){
+        score++;
+        scoreText.textContent=`🎯 Score: ${score}`;
+        t.hit=true;
+      }
+    }
+  }
+  targets=targets.filter(t=>!t.hit);
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawBow();
+  for(let t of targets)drawTarget(t);
+  for(let a of arrows)drawArrow(a);
+}
+
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+
+// controls
+canvas.addEventListener("mousemove",e=>{
+  const rect=canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  bow.angle=Math.atan2(my-bow.y,mx-bow.x);
+});
+canvas.addEventListener("click",shoot);
+canvas.addEventListener("touchmove",e=>{
+  const touch=e.touches[0];
+  const rect=canvas.getBoundingClientRect();
+  const mx=touch.clientX-rect.left,my=touch.clientY-rect.top;
+  bow.angle=Math.atan2(my-bow.y,mx-bow.x);
+});
+canvas.addEventListener("touchstart",shoot);
+
+function shoot(){
+  const power=12;
+  const vx=power*Math.cos(bow.angle);
+  const vy=power*Math.sin(bow.angle);
+  arrows.push({x:bow.x+bow.size*Math.cos(bow.angle),
+               y:bow.y+bow.size*Math.sin(bow.angle),
+               vx,vy,angle:bow.angle});
+}
+</script>
+</body>
+</html>

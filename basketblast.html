@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hoop Shot</title>
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: sans-serif;
+    background: #f0f0f0;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 { margin-bottom: 20px; }
+  #hoop {
+    width: 200px;
+    height: 100px;
+    border: 5px solid orange;
+    border-radius: 50% / 50%;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  #ball {
+    width: 30px;
+    height: 30px;
+    background: orange;
+    border-radius: 50%;
+    position: absolute;
+    bottom: -35px;
+    left: 85px;
+    transition: all 0.5s ease;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+  #score {
+    font-size: 20px;
+  }
+</style>
+</head>
+<body>
+<h1>Hoop Shot</h1>
+<div id="hoop">
+  <div id="ball"></div>
+</div>
+<button onclick="shoot()">Shoot!</button>
+<div id="score">Score: 0</div>
+
+<script>
+let score = 0;
+
+function shoot() {
+  const ball = document.getElementById('ball');
+
+  // Animate ball to hoop
+  ball.style.bottom = '70px';
+  ball.style.left = '85px';
+
+  // Check if shot goes in (random 50% chance)
+  setTimeout(() => {
+    const success = Math.random() < 0.5; // 50% chance
+    if (success) {
+      score++;
+      alert('Swish! +1 point');
+    } else {
+      alert('Miss!');
+    }
+    document.getElementById('score').textContent = 'Score: ' + score;
+
+    // Reset ball position
+    ball.style.bottom = '-35px';
+  }, 500);
+}
+</script>
+</body>
+</html>

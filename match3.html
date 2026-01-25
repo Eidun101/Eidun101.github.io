@@ -1,36 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Match-3 Board (HTML Only)</title>
+<meta charset="UTF-8">
+<title>Match-3 Game</title>
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: sans-serif;
+    background: #f0f0f0;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 { margin-bottom: 20px; }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(8, 50px);
+    grid-template-rows: repeat(8, 50px);
+    gap: 2px;
+  }
+  .candy {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 30px;
+    cursor: pointer;
+    border-radius: 5px;
+    background: white;
+    transition: transform 0.2s;
+  }
+  .candy:hover { transform: scale(1.2); }
+</style>
 </head>
 <body>
-  <h1>Match-3 Board (Static)</h1>
-  <table border="1" cellpadding="20" cellspacing="0">
-    <tr>
-      <td>🍎</td><td>🍌</td><td>🍇</td><td>🍒</td><td>🍊</td><td>🍉</td><td>🍎</td><td>🍌</td>
-    </tr>
-    <tr>
-      <td>🍇</td><td>🍒</td><td>🍊</td><td>🍉</td><td>🍎</td><td>🍌</td><td>🍇</td><td>🍒</td>
-    </tr>
-    <tr>
-      <td>🍊</td><td>🍉</td><td>🍎</td><td>🍌</td><td>🍇</td><td>🍒</td><td>🍊</td><td>🍉</td>
-    </tr>
-    <tr>
-      <td>🍎</td><td>🍌</td><td>🍇</td><td>🍒</td><td>🍊</td><td>🍉</td><td>🍎</td><td>🍌</td>
-    </tr>
-    <tr>
-      <td>🍇</td><td>🍒</td><td>🍊</td><td>🍉</td><td>🍎</td><td>🍌</td><td>🍇</td><td>🍒</td>
-    </tr>
-    <tr>
-      <td>🍊</td><td>🍉</td><td>🍎</td><td>🍌</td><td>🍇</td><td>🍒</td><td>🍊</td><td>🍉</td>
-    </tr>
-    <tr>
-      <td>🍎</td><td>🍌</td><td>🍇</td><td>🍒</td><td>🍊</td><td>🍉</td><td>🍎</td><td>🍌</td>
-    </tr>
-    <tr>
-      <td>🍇</td><td>🍒</td><td>🍊</td><td>🍉</td><td>🍎</td><td>🍌</td><td>🍇</td><td>🍒</td>
-    </tr>
-  </table>
+<h1>Match-3 Game</h1>
+<div id="board"></div>
+
+<script>
+const board = document.getElementById('board');
+const width = 8;
+const candies = ['🍎','🍌','🍇','🍒','🍊','🍉'];
+let squares = [];
+let selected = null;
+
+// Create the board
+function createBoard() {
+  for (let i = 0; i < width*width; i++) {
+    const square = document.createElement('div');
+    square.classList.add('candy');
+    square.setAttribute('id', i);
+    square.textContent = candies[Math.floor(Math.random() * candies.length)];
+    square.addEventListener('click', selectCandy);
+    board.appendChild(square);
+    squares.push(square);
+  }
+}
+createBoard();
+
+// Select candy
+function selectCandy(e) {
+  if (!selected) {
+    selected = e.target;
+    selected.style.border = '2px solid black';
+  } else {
+    swapCandies(selected, e.target);
+    selected.style.border = '';
+    selected = null;
+  }
+}
+
+// Swap candies
+function swapCandies(c1, c2) {
+  const temp = c1.textContent;
+  c1.textContent = c2.textContent;
+  c2.textContent = temp;
+  checkMatches();
+}
+
+// Check matches
+function checkMatches() {
+  // Rows
+  for (let i = 0; i < width*width; i++) {
+    if (i % width < width - 2) {
+      let row = [squares[i], squares[i+1], squares[i+2]];
+      if (row[0].textContent === row[1].textContent && row[0].textContent === row[2].textContent) {
+        row.forEach(s => s.textContent = '');
+      }
+    }
+  }
+  // Columns
+  for (let i = 0; i < width*width - 2*width; i++) {
+    let col = [squares[i], squares[i+width], squares[i+2*width]];
+    if (col[0].textContent === col[1].textContent && col[0].textContent === col[2].textContent) {
+      col.forEach(s => s.textContent = '');
+    }
+  }
+  dropCandies();
+}
+
+// Drop candies
+function dropCandies() {
+  for (let i = width*width-1; i >= 0; i--) {
+    if (squares[i].textContent === '') {
+      if (i - width >= 0) {
+        squares[i].textContent = squares[i - width].textContent;
+        squares[i - width].textContent = '';
+      } else {
+        squares[i].textContent = candies[Math.floor(Math.random() * candies.length)];
+      }
+    }
+  }
+  setTimeout(checkMatches, 200);
+}
+</script>
 </body>
 </html>
